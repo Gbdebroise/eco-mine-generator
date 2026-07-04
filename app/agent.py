@@ -56,15 +56,28 @@ researcher_agent = LlmAgent(
     name="researcher_agent",
     model=Gemini(model="gemini-2.5-flash"),
     instruction="""Tu es l'agent Eco-Researcher.
-    Utilise l'outil read_text_file pour lire le fichier 'imerys_csr_data.txt'.
-    Trouve la section correspondant au site demandé par l'utilisateur.
-    Extrais et renvoie UNIQUEMENT un objet JSON avec ces clés :
+
+    ETAPE 1 - LIRE (obligatoire avant toute reponse) :
+    Appelle read_text_file sur le chemin exact 'app/imerys_csr_data.txt'.
+    Si erreur "not found", appelle list_directory sur '.' puis sur 'app' pour
+    localiser le fichier, puis reessaie. Ne reponds JAMAIS avant d'avoir lu le fichier.
+
+    ETAPE 2 - EXTRAIRE :
+    Trouve la section « SITE: <nom> » correspondant au site demande par l'utilisateur
+    (par defaut "Clerac" si aucun site n'est precise ; la comparaison ignore les accents).
+    Recopie les termes EXACTS du fichier - n'invente et ne generalise AUCUNE valeur.
+    Ex. pour Clerac : mineral_name = "Chamotte" (PAS "Clay"),
+    danger_obstacle = "Blasting Zone" (PAS "Landslide").
+
+    ETAPE 3 - RENVOYER un objet JSON strict avec ces cles :
       - site_name
-      - mineral_name        (ex: "Chamotte Clay")
-      - eco_target          (ex: "Migratory Birds (MNHN)")
-      - protected_area      (ex: "Chestnut groves / bats")
-      - danger_obstacle     (ex: "Blasting Zone")
-    Pas de markdown, pas de texte autour. Juste le JSON.
+      - mineral_name        (minerai exact, ex: "Chamotte")
+      - eco_target          (cible ecologique exacte, ex: "Migratory Birds (MNHN)")
+      - protected_area      (zone protegee exacte, ex: "Chestnut groves (bats)")
+      - danger_obstacle     (danger exact, ex: "Blasting Zone")
+
+    Pas de markdown, pas de texte autour. Uniquement le JSON.
+    Si une info est absente du fichier pour ce site, mets "N/A" - ne l'invente pas.
     """,
     tools=[fs_read],
     output_key="csr_summary",
@@ -75,20 +88,21 @@ coder_agent = LlmAgent(
     name="coder_agent",
     model=Gemini(model="gemini-2.5-pro"),
     instruction="""Tu es un concepteur de niveau pour un endless runner Phaser 3.
-    Voici les données environnementales réelles extraites par le chercheur :
+    Voici les donnees reelles extraites par le chercheur (NE LES MODIFIE PAS) :
     {csr_summary}
 
-    À partir de ces données, génère le contenu d'un fichier de configuration de
-    niveau, puis écris-le avec l'outil write_file dans 'public/level_config.json'.
+    Recopie EXACTEMENT site_name, mineral_name, eco_target et danger_obstacle depuis
+    ces donnees. N'invente et ne generalise aucune valeur (garde "Chamotte", pas "Clay").
 
-    Choisis le champ "biome" dans CETTE LISTE EXACTE selon le site :
-      - "clay_quarry"          -> carrière argile / kaolin / chamotte à ciel ouvert
+    Choisis le champ "biome" dans CETTE LISTE EXACTE selon le minerai / type d'operation :
+      - "clay_quarry"          -> argile / kaolin / chamotte à ciel ouvert
       - "granite_underground"  -> mine souterraine, lithium, granite
       - "wetland"              -> carrière réhabilitée en zone humide
       - "diatomite"            -> diatomite / sols clairs filtrants
     Si rien ne correspond, utilise "clay_quarry".
 
-    Le JSON doit suivre EXACTEMENT ce schéma :
+    Ecris via write_file dans 'public/level_config.json' un JSON suivant EXACTEMENT
+    ce schéma :
     {
       "site_name": "...",
       "mineral_name": "...",
@@ -99,11 +113,13 @@ coder_agent = LlmAgent(
       "spawn_rates": { "mineral": 0.6, "eco_bonus": 0.4, "obstacle": 0.5 },
       "ui_strings": {
         "title": "MISSION <SITE EN MAJUSCULES>",
-        "instructions": "Collect <minerai> & Band <cible>! Avoid <obstacle>!"
+        "instructions": "Collect <minerai> & Band <cible>! Avoid <danger>!"
       }
     }
 
-    Tous les textes UI sont en anglais. Écris du JSON valide uniquement
+    Les ui_strings doivent nommer le minerai, la cible et le danger REELS
+    (ex: "Collect Chamotte & Band Migratory Birds! Avoid Blasting Zones!").
+    Tous les textes UI sont en anglais. Ecris du JSON valide uniquement
     (pas de markdown). Confirme à l'utilisateur que le niveau est prêt
     en précisant le biome choisi.
     """,
