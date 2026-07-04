@@ -1,0 +1,78 @@
+==================================================================
+IMERYS — CSR / BIODIVERSITY DATA  (game generation source file)
+==================================================================
+Read by researcher_agent. For each site, extract:
+  - mineral_name      -> collectible "production" item
+  - eco_target        -> collectible "eco bonus" item
+  - protected_area    -> obstacle that costs eco points if hit
+  - danger_obstacle   -> obstacle that ends the run if hit
+
+Facts below are drawn from Imerys' public communications (imerys.com,
+emili.imerys.com) and public-debate documents. Verify exact figures
+against the latest Imerys CSR report before final submission.
+==================================================================
+
+
+------------------------------------------------------------------
+SITE: Clerac
+------------------------------------------------------------------
+Location:        Clerac, Charente-Maritime, France
+Mineral:         Chamotte (calcined refractory clay / kaolinitic clay)
+Operation type:  Open-pit clay quarry
+Eco-target:      Migratory birds, monitored through annual bird-banding
+                 (ringing) campaigns with the Museum National d'Histoire
+                 Naturelle (MNHN), under the ACRO-bag program comparing
+                 active quarries with sites under ecological restoration.
+Protected area:  Chestnut groves deliberately left unmined to shelter
+                 bats (chiroptera), birds and insects.
+Danger:          Blasting zones in the active quarry.
+Headline fact:   "Like Imerys at Clerac, you supported bird monitoring
+                 with the MNHN through the ACRO-bag program."
+
+
+------------------------------------------------------------------
+SITE: Beauvoir
+------------------------------------------------------------------
+Location:        Echassieres, Allier, France  (EMILI lithium project)
+Mineral:         Lithium ore (lithium-bearing mica in granite),
+                 refined into lithium hydroxide for EV batteries.
+Operation type:  Planned UNDERGROUND mine beneath the existing Beauvoir
+                 kaolin quarry — a deliberate choice to limit surface impact.
+Eco-target:      Biodiversity plots monitored with the French forestry
+                 commission (ONF) and the Allier Conservatory of Natural
+                 Areas (CEN Allier) under the Avoid-Reduce-Compensate (ERC)
+                 approach.
+Protected area:  The Sioule river and its banks — water is drawn from the
+                 river, not from groundwater, to protect the water resource.
+Danger:          Underground blasting and tunnelling zones.
+Headline fact:   "Like Imerys at Beauvoir, you mined lithium underground
+                 while protecting the Sioule's water resource."
+
+
+------------------------------------------------------------------
+SITE: Provins
+------------------------------------------------------------------
+Location:        Savins, near Provins, Seine-et-Marne, France
+Mineral:         Clay (extracted for floor tiles and roof tiles)
+Operation type:  Open-pit clay quarry, fully rehabilitated (completed 2020)
+Eco-target:      Migratory and water birds — over 90 species recorded,
+                 including the black stork, European kingfisher and little
+                 grebe, on the restored wetland and nesting island.
+Protected area:  10.7 hectares of restored prairie and shallow breeding
+                 wetlands hosting amphibians (crested newt, salamander).
+Danger:          Excavation and blasting zones from the active phase.
+Headline fact:   "Like Imerys at Provins, you turned a spent quarry into a
+                 wetland home for over 90 bird species."
+
+
+------------------------------------------------------------------
+SITE: Foufouilloux
+------------------------------------------------------------------
+Location:        Near Murat, Cantal, France
+Mineral:         Diatomite (prized for its filtering properties)
+Operation type:  Quarry with successful rehabilitation of Foufouilloux Nord
+Eco-target:      Returning native flora and fauna on the rehabilitated land.
+Protected area:  Restored natural habitats on the former extraction zone.
+Danger:          Blasting and extraction zones in the active area.
+Headline fact:   "Like Imerys at Foufouilloux, you rehabilitated the land
+                 and let nature reclaim the quarry."
