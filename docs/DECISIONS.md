@@ -241,3 +241,55 @@ sémantique et effet opposés (fatal vs malus) ; garder deux entités évite les
 
 **Impact attendu** : test manuel du gameplay Sprint 3 possible sans pipeline ; scoring et
 game over cohérents (blast + enemy_truck = fatal ; dynamite + grove = malus).
+
+---
+
+## 2026-07-05 — Sprint 4 : agent Reviewer en mode RAPPORT (pas de boucle)
+
+**Contexte** : dernier agent du pipeline (règle capstone : système multi-agent complet
+Researcher → Coder → Reviewer). Deux options ouvertes depuis le HANDOFF : (a) **boucle**
+de correction (le Reviewer renvoie un `ReviewResult` structuré au Coder via `session.state`,
+max 3 itérations) ; (b) **rapport** de validation lisible sans renvoi. Contrainte forte :
+deadline serrée (< 1 semaine) + impossibilité de tester sur la machine d'édition + exigence
+de démo robuste en playground.
+
+**Décision** : **mode rapport**. Le Reviewer est un 3ᵉ `LlmAgent` (`gemini-2.5-pro`) ajouté
+aux `sub_agents` du `SequentialAgent` existant (`researcher → coder → reviewer`) — **aucun
+changement d'orchestration**. Il relit `public/level_config.json` sur disque (MCP read),
+valide 3 axes (validité schéma/plages, cohérence thématique Clérac, équilibrage badge), et
+écrit un rapport Markdown via MCP write dans `docs/reviews/review_<site>.md`. Tools :
+`fs_read`, `web_search` (Tavily, fact-check conditionnel d'une espèce douteuse), `fs_write`.
+Verdict global `PASS` / `PASS WITH WARNINGS` / `FAIL`.
+
+**Choix confirmé avec l'utilisateur** (AskUserQuestion, Sprint 4) : Reviewer = **Rapport**,
+langue **EN**, migration des docs racine vers `docs/`, deadline **serrée**.
+
+**Alternative rejetée — boucle de correction** : plus impressionnante pour le critère
+multi-agent (vraie collaboration agent↔agent) mais (a) **plus risquée à démontrer live**,
+(b) difficile à borner proprement (gestion des 3 itérations + état partagé), (c) **non
+validable** sur la machine d'édition avant la deadline. Documentée comme travail futur
+(writeup § Limits & learnings).
+
+**Alternative rejetée — `LoopAgent`** : imposerait de restructurer le `SequentialAgent`
+et un contrat de sortie structuré Coder↔Reviewer non testable à temps. Le mode rapport
+n'ajoute qu'un `sub_agent`.
+
+**Déviation assumée du spec — nom de fichier** : le spec Sprint 4 demandait
+`docs/reviews/review_<timestamp>.md`. Un LLM ne génère pas de timestamp fiable (et
+`Date.now()`/horloge indisponibles côté agent). Nom retenu : `review_<site>.md`
+(déterministe, lisible, dérivé de `site_name` en minuscules sans accents). Un run écrase
+le rapport du site précédent — acceptable ; pour archivage, l'utilisateur renomme.
+
+**Preuve MCP renforcée pour le jury** : un run Reviewer produit `read_text_file`
+(config + schéma + manifeste), un `write_file` (rapport), et **optionnellement** un
+`tool_use` Tavily quand une espèce est hors liste connue — soit un canal MCP de plus
+visible dans la debug view.
+
+**Impact attendu** (à valider sur le PC de test) :
+- Run complet `agents-cli playground` : 3 agents visibles, le Reviewer relit le config et
+  écrit `docs/reviews/review_clerac.md` avec verdict `PASS`.
+- Test ciblé (`tests/manual/run_reviewer.py` + `public/configs/examples/level_config.broken.json`) :
+  verdict `FAIL` détectant espèces hors-site (Polar Bear, Bengal Tiger), `spawn_weight` 0,
+  `speed_max < speed_start`, seuils badge triviaux/hors-plage, et `missing_assets`.
+- `session.state` propage bien Researcher → Coder → Reviewer (`{csr_summary}` consommé par
+  le Reviewer) — vérifie que le bug de propagation du Sprint 1 ne réapparaît pas.

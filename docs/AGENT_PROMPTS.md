@@ -399,6 +399,61 @@ Incrément appliqué **par-dessus** les modifications 1-3. Le Coder connaît dé
 
 ---
 
+## Reviewer
+
+- **Modèle** : `gemini-2.5-pro`
+- **Tools** : `fs_read` (MCP filesystem lecture : relit le config + le schéma + le manifeste),
+  `web_search` (Tavily : fact-check d'une espèce douteuse = MCP call visible en plus),
+  `fs_write` (MCP filesystem écriture : écrit le rapport)
+- **Entrée** : `{csr_summary}` (state écrit par le Researcher) + `public/level_config.json` relu sur disque
+- **Sortie** : écrit `docs/reviews/review_<site>.md` (mode **rapport**, PAS de renvoi au Coder)
+- **Position** : 3ᵉ `sub_agent` du `SequentialAgent` (`researcher → coder → reviewer`)
+
+### Contrat de validation (Sprint 4)
+
+Le Reviewer valide le config sur **3 axes** et produit un verdict global
+(`PASS` / `PASS WITH WARNINGS` / `FAIL`) :
+
+- **Axe 1 — Validité du config** : JSON parse + respect du schéma (`docs/level_config_schema.md`),
+  toutes les valeurs dans leurs plages, aucun `spawn_weight` à 0, aucune section vide ;
+  tout chemin d'asset référencé est vérifié sur disque (MCP read) ; `missing_assets` signalé.
+- **Axe 2 — Cohérence thématique Clérac** : chaque espèce ∈ liste réelle du site (rollier,
+  guêpier, engoulevent, crapaud calamite, lézard ocellé, orchidées, insectes locaux, oiseaux
+  migrateurs, chauves-souris) ; aucune espèce hors-site ; minerai = kaolin/chamotte. Toute
+  espèce hors liste ET absente de `{csr_summary}` → **fact-check Tavily** (MCP visible), verdict
+  consigné (vérifiée / douteuse / hors-site).
+- **Axe 3 — Équilibrage gameplay** (barème réel `game.js` : minerai +10, oiseau +15/+1 Green,
+  bosquet −20/−3, dynamite `score_malus`/`green_malus`, distance +1/10 px ; badge si
+  `score ≥ min_score` **ET** `green ≥ min_green_points`) : badge atteignable mais non trivial
+  (pas en ~30 s) ; courbe de difficulté présente et calibrée (`speed_start < speed_max`).
+
+### Prompt actuel (Sprint 4)
+
+Le prompt littéral est dans [`app/agent.py`](../app/agent.py) (`reviewer_agent.instruction`).
+Il impose : ÉTAPE 1 relire (`read_text_file` sur `public/level_config.json` +
+`docs/level_config_schema.md`) → ÉTAPE 2 valider les 3 axes → ÉTAPE 3 écrire le rapport
+Markdown en anglais via `write_file` dans `docs/reviews/review_<site>.md` (structure imposée :
+Verdict, Axis 1/2/3, Issues) → ÉTAPE 4 confirmer le verdict + le chemin.
+
+### Justification des choix
+
+- **Mode rapport, pas boucle** (décision verrouillée Sprint 4) : un renvoi au Coder serait plus
+  spectaculaire mais plus risqué à démontrer et difficile à borner (risque de boucle infinie).
+  Le rapport s'intègre sans changer l'orchestration (simple 3ᵉ `sub_agent`) et reste robuste
+  pour la deadline. La boucle est documentée comme travail futur (writeup § Limits).
+- **Relecture du config via MCP (pas depuis le state)** : le Reviewer lit le fichier réellement
+  écrit sur disque → cohérence avec ce que le jeu chargera + `tool_use read_text_file` visible
+  au jury. `{csr_summary}` sert de source de vérité thématique pour l'Axe 2.
+- **Fact-check Tavily conditionnel** : n'appelle le web QUE sur une espèce douteuse → MCP call
+  supplémentaire pertinent (bonus jury) sans bruit sur les runs propres.
+- **Nom `review_<site>.md` (pas `review_<timestamp>.md`)** : un LLM ne peut pas générer de
+  timestamp fiable → nom déterministe et lisible dérivé de `site_name`. Déviation assumée du
+  spec Sprint 4 (voir `DECISIONS.md`).
+- **Non modifié** : Researcher et Coder (inchangés), modèles, `output_key`, structure
+  `SequentialAgent` (on ajoute un `sub_agent`, on ne réorganise rien).
+
+---
+
 ## Historique des versions
 
 | Date | Agent | Changement |
@@ -412,3 +467,4 @@ Incrément appliqué **par-dessus** les modifications 1-3. Le Coder connaît dé
 | 5 juil. 2026 | researcher | Sprint 2 : enrichissement web (Tavily+Fetch), `headline_fact` + `biodiversity_species` |
 | 5 juil. 2026 | coder | Sprint 2 : champs narratifs `intro_story` / `eco_facts` / `end_recap` + passthrough espèces |
 | 5 juil. 2026 | coder | Sprint 3 : sections gameplay `obstacles`/`zones`/`entities`/`difficulty`/`thresholds` + plages + garde-fou anti-zéro |
+| 5 juil. 2026 | reviewer | Sprint 4 : création du 3ᵉ agent (mode rapport), validation 3 axes, écrit `docs/reviews/review_<site>.md`, fact-check Tavily conditionnel |

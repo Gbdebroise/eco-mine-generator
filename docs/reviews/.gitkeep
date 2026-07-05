@@ -1,0 +1,2 @@
+Generated Reviewer reports land here (docs/reviews/review_<site>.md).
+Kept in git so the fs_write MCP target always exists.

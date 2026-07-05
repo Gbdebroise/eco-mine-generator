@@ -46,12 +46,17 @@ Documents détaillés dans `docs/` :
 
 ## 🎯 Sprint en cours
 
-**Sprint 1 — Correction bloquants** (voir `docs/ROADMAP.md` pour détails)
+**Sprint 4 — Reviewer, démo & writeup Kaggle** (voir `docs/HANDOFF.md` pour l'état détaillé)
 
-Priorité immédiate : réécrire les instructions Researcher et Coder pour résoudre
-le message d'erreur `« Je ne suis pas en mesure de générer des jeux »` et
-garantir que les données Clérac sont bien passées via `session.state` (Context
-object en ADK 2.0).
+Pipeline désormais à **3 agents** : `SequentialAgent(researcher → coder → reviewer)` dans
+`app/agent.py`. Le **Reviewer** (mode **rapport**, décision verrouillée) relit le
+`level_config.json`, le valide sur 3 axes (schéma/plages, cohérence thématique Clérac,
+équilibrage badge) et écrit `docs/reviews/review_<site>.md`.
+
+Priorité immédiate : **validation WSL** — Reviewer sur config cassé
+(`tests/manual/run_reviewer.py` → verdict FAIL attendu), puis pipeline complet en playground
+(verdict PASS + `write_file` du rapport visible), puis tournage vidéo et remplissage de
+`docs/kaggle_writeup.md` § Results.
 
 ---
 

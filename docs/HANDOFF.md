@@ -75,10 +75,11 @@ Ne JAMAIS copier via clé USB : `.venv/`, `__pycache__/`, `.env`, `.pytest_cache
 **Pipeline agents :**
 ```
 Researcher (extrait données Clérac depuis fichiers + web)
-    ↓ session.state["clerac_data"]
-Coder (génère level_config.json ~15 lignes)
-    ↓ session.state["level_config"]
-Reviewer [À CRÉER] (valide assets, richesse données, suggère améliorations)
+    ↓ session.state["csr_summary"]
+Coder (génère level_config.json ~50 lignes)
+    ↓ écrit public/level_config.json (disque)
+Reviewer [✅ CRÉÉ Sprint 4] (relit le config, valide 3 axes, écrit un RAPPORT
+    docs/reviews/review_<site>.md — mode rapport, pas de renvoi au Coder)
 ```
 
 **Workflow debug/preuve MCP :**
@@ -101,13 +102,15 @@ Reviewer [À CRÉER] (valide assets, richesse données, suggère améliorations)
 | 3 juillet | **WSL 2 sur Windows** | Meilleure compat MCP (npx), supporté officiellement par agents-cli |
 | 3 juillet | **Manifeste d'assets en dur dans le prompt du Coder** | Contrer les hallucinations de chemins |
 | 3 juillet | **Ajout d'un 3ème agent Reviewer** | Valider assets + richesse données + suggérer améliorations |
+| 5 juillet | **Reviewer en mode RAPPORT** (pas de boucle), 3ᵉ `sub_agent` du `SequentialAgent` | Plus sûr à démontrer + aucun changement d'orchestration ; boucle = travail futur (décision verrouillée avec l'utilisateur) |
+| 5 juillet | **Writeup + vidéo en EN**, docs racine migrés vers `docs/` | Jury international ; anti-drift (une seule source par doc) |
 | 3 juillet | **Ajout d'un web MCP au Researcher** | Enrichir la biodiversité au-delà des fichiers locaux |
 | 3 juillet | **Playground UI comme preuve MCP pour le jury** | Debug view montre chaque tool_use / tool_result |
 | 3 juillet | **Documentation structurée dans le repo** | 8 fichiers markdown : voir section suivante |
 
 ### Questions techniques encore ouvertes
 - **Choix du web MCP** : `mcp-server-fetch` (simple GET/scrape) vs `mcp-server-tavily` (recherche web) vs `mcp-server-brave-search` ? → recommandation actuelle : les deux (Tavily pour découvrir URLs, fetch pour récupérer contenu)
-- **Boucle Reviewer** : simple `SequentialAgent` avec 3 nodes ou `LoopAgent` qui itère jusqu'à validation ?
+- ~~**Boucle Reviewer**~~ : ✅ **résolu** (Sprint 4). Choix = **mode rapport** dans le `SequentialAgent` à 3 nodes (pas de `LoopAgent`). Voir `DECISIONS.md`.
 - ~~**Passage state entre agents en ADK 2.0**~~ : ✅ **résolu** (lecture de `app/agent.py`, 5 juil.). Le researcher a `output_key="csr_summary"` → sa réponse texte est écrite dans `session.state["csr_summary"]` ; le coder la récupère via le template `{csr_summary}` dans son instruction. Pas de `Context object`, pas d'edges explicites.
 
 ---
@@ -183,12 +186,14 @@ eco-mine-generator/
 > `CHANGELOG.md` § Validation. `game.js` charge désormais en **ES module** → servir en
 > HTTP (pas d'ouverture `file://`).
 
-### Sprint 4 — Reviewer agent + démo (1 jour)
-- [ ] Créer 3ème agent Reviewer dans le `SequentialAgent` ADK 2.0 (ajouter un `LlmAgent` aux `sub_agents`)
-- [ ] Reviewer valide assets, note richesse contenu, suggère améliorations
-- [ ] Capture démo vidéo montrant les 3 agents + debug view MCP
-- [ ] Writeup Kaggle
-- [ ] Script vidéo 5 minutes
+### Sprint 4 — Reviewer agent + démo (1 jour) 🚨 EN COURS (code+docs écrits, non testés)
+- [x] Créer 3ème agent Reviewer dans le `SequentialAgent` ADK 2.0 — ✅ `reviewer_agent` ajouté aux `sub_agents` (`app/agent.py`), **mode rapport** (décision verrouillée)
+- [x] Reviewer valide config sur 3 axes (schéma/plages, cohérence Clérac, équilibrage badge) → écrit `docs/reviews/review_<site>.md` — ✅ *code écrit, non testé*
+- [x] Fixture cassée + runner de test Reviewer — ✅ `public/configs/examples/level_config.broken.json` + `tests/manual/run_reviewer.py`
+- [x] Writeup Kaggle (EN) — ✅ `docs/kaggle_writeup.md` (squelette + intentions ; Results à remplir après tests)
+- [x] Script vidéo (4 min, EN, 3 agents + compteur MCP) + checklist — ✅ `docs/video_script.md`, `docs/video_checklist.md`
+- [ ] **Validation WSL** : Reviewer sur config cassé (FAIL attendu) + pipeline complet playground (PASS) + atteignabilité badge ← **PROCHAINE ACTION**
+- [ ] Tourner la vidéo + remplir `docs/kaggle_writeup.md` § Results avec les chiffres réels (nb MCP calls, exemples configs/reviews)
 
 ---
 
@@ -284,4 +289,6 @@ Sur la machine de test (WSL 2) :
 
 ---
 
-*Fin du document HANDOFF. À jour au 5 juillet 2026 (Sprint 2 en cours, étape 2.4).*
+*Fin du document HANDOFF. À jour au 5 juillet 2026. Sprints 2–3 codés (validation WSL en
+attente) ; **Sprint 4** : Reviewer (mode rapport) + writeup + script vidéo écrits, validation
+WSL à faire (Reviewer sur config cassé → FAIL, pipeline complet → PASS, badge atteignable).*

@@ -5,6 +5,64 @@ Le projet se synchronise entre deux machines par `git bundle` (voir `CLAUDE.md`)
 
 ---
 
+## [Sprint 4] — 2026-07-05 — Reviewer, démo & writeup Kaggle
+
+Boucler le système multi-agent (Researcher → Coder → **Reviewer**) et livrer le package
+jury : writeup, script vidéo, checklist. Le Reviewer valide le config généré — il ne
+remplace pas le Coder, il le **contrôle**. Architecture **config-driven** préservée.
+
+> ⚠️ **Non testé sur cette machine** (édition Windows). À valider sur le PC WSL — voir la
+> section « Validation » plus bas et `docs/HANDOFF.md`.
+
+### Décisions verrouillées (avec l'utilisateur)
+- **Reviewer = mode RAPPORT** (pas de boucle de renvoi au Coder) : plus sûr à démontrer,
+  aucun changement d'orchestration. Boucle documentée comme travail futur.
+- **Langue jury = EN** (writeup + vidéo).
+- **Docs racine migrés vers `docs/`** (anti-drift).
+- **Deadline serrée** → chemin le plus robuste privilégié.
+
+### Added
+- `app/agent.py` : 3ᵉ agent `reviewer_agent` (`gemini-2.5-pro`, tools `fs_read` +
+  `web_search` Tavily + `fs_write`) ajouté aux `sub_agents` du `SequentialAgent`.
+- `docs/kaggle_writeup.md` — writeup Kaggle (EN, squelette + intentions ; Results à remplir
+  après tests).
+- `docs/video_script.md` (4 min, EN, 3 agents + compteur MCP) + `docs/video_checklist.md`.
+- `docs/reviews/` (`.gitkeep`) — cible du rapport Reviewer `review_<site>.md`.
+- `public/configs/examples/level_config.broken.json` — fixture volontairement cassée
+  (espèces hors-site, valeurs hors-plage, `spawn_weight` 0, `speed_max < speed_start`,
+  `missing_assets`) pour tester la détection du Reviewer.
+- `tests/manual/run_reviewer.py` — runner standalone du Reviewer sur un config donné
+  (seed `csr_summary`, swap non destructif de `level_config.json`).
+
+### Changed
+- `SequentialAgent` : `sub_agents=[researcher, coder, reviewer]` (ajout, pas de refonte).
+- Docs : `AGENT_PROMPTS.md` (section Reviewer + historique), `DECISIONS.md` (ADR-lite
+  Reviewer mode rapport), `ARCHITECTURE.md` (3ᵉ agent dans le pipeline),
+  `HANDOFF.md`/`CLAUDE.md`/`GEMINI.md` (Sprint 4, pipeline à 3 agents).
+- Root `WRITEUP.md` / `VIDEO_SCRIPT.md` → **stubs pointeurs** vers `docs/` (contenu migré
+  et actualisé 3-agents ; anciennes versions 2-agents en historique git).
+
+### Not changed (volontairement)
+- **Researcher** et **Coder** : prompts, modèles, tools, `output_key` inchangés.
+- Structure de state (`{csr_summary}`) — le Reviewer la **consomme**, ne la modifie pas.
+- Modèles (`gemini-2.5-flash` / `gemini-2.5-pro`), moteur `game.js`.
+
+### Déviation assumée
+- Rapport nommé `review_<site>.md` (pas `review_<timestamp>.md`) : un LLM ne produit pas de
+  timestamp fiable. Voir `docs/DECISIONS.md`.
+
+### Validation (à lancer sur le PC de test WSL)
+1. **Reviewer sur config cassé** (doit produire un verdict FAIL détectant tous les problèmes) :
+   `uv run python tests/manual/run_reviewer.py`
+   puis lire `docs/reviews/review_clerac.md`.
+2. **Pipeline complet** : `agents-cli playground` → `Generate a game for Clerac` → vérifier
+   dans la debug view les 3 agents + le `write_file` du rapport (verdict PASS).
+3. **Atteignabilité badge** : rendu manuel (`cd public && python -m http.server 8000`),
+   jouer un run et vérifier que le badge Green tombe avec `score ≥ 5000` ET `green ≥ 30`
+   (barème : oiseau +15/+1 Green, minerai +10, distance +1/10 px).
+
+---
+
 ## [Sprint 3] — 2026-07-05 — Gameplay & Meta
 
 Rendre le jeu défendable devant le jury : mécaniques variées, difficulté progressive,
