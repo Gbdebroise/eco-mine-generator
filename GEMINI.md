@@ -30,7 +30,7 @@ Documents détaillés dans `docs/` :
 - **Python** : 3.12 (pas 3.14)
 - **Package manager** : `uv` uniquement (jamais `pip` ni `venv`)
 - **Node** : 24.x
-- **Framework agents** : ADK 2.0 en **graph workflow** (`@node`, `Workflow`, `Event`)
+- **Framework agents** : ADK 2.0 « classique » — `SequentialAgent(researcher_agent → coder_agent)`, passage de state via `output_key` + template `{csr_summary}` (PAS le graph workflow `@node`/`Workflow`/`Event` : voir `app/agent.py` et `docs/AGENT_PROMPTS.md`)
 - **Wrapper** : `agents-cli` — installé via `uv tool install google-agents-cli`
 - **Playground debug view** : `http://localhost:8080` — c'est LA source de vérité pour prouver les appels MCP au jury
 

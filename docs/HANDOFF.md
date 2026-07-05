@@ -19,7 +19,7 @@ décisions prises, et la roadmap. Merci de le lire attentivement avant qu'on con
 On en est au Sprint 1 : corriger l'architecture de la pipeline (message d'erreur du 
 Researcher, preuve MCP, hallucinations d'assets). Prochaine action concrète : 
 réécrire les instructions des agents Researcher et Coder. Stack : agents-cli 
-+ ADK 2.0 (graph workflow avec @node). 
++ ADK 2.0 « classique » (SequentialAgent, state via output_key + template). 
 
 IMPORTANT : je développe sur un PC (Windows natif, édition uniquement) et je teste 
 sur un autre PC (WSL 2, pipeline complet). Sync via git bundle sur clé USB. 
@@ -43,7 +43,7 @@ Workflow standard : édition → `git commit` → `git bundle create /d/ecomine.
 Ne JAMAIS copier via clé USB : `.venv/`, `__pycache__/`, `.env`, `.pytest_cache/`, `node_modules/` (déjà dans `.gitignore`).
 
 ### Ce qui fonctionne
-- Pipeline ADK 2.0 en graph workflow avec `agents-cli` (playground OK sur `localhost:8080` avec debug view)
+- Pipeline ADK 2.0 `SequentialAgent` (researcher → coder) avec `agents-cli` (playground OK sur `localhost:8080` avec debug view)
 - Environnement WSL 2 sur Windows, projet à `C:\Users\bertr\Documents\PROJETS\eco-mine-generator`
 - Python 3.12, `uv` pour la gestion des packages, Node.js 24, Pillow 12
 - Génération d'un `level_config.json` par le Coder consommé par un `game.js` Phaser 3 hand-coded
@@ -51,7 +51,7 @@ Ne JAMAIS copier via clé USB : `.venv/`, `__pycache__/`, `.env`, `.pytest_cache
 - MCP filesystem (`@modelcontextprotocol/server-filesystem`) branché avec filtrage des tools (Researcher = read only, Coder = write only)
 
 ### Ce qui ne fonctionne pas (problèmes identifiés lors du test du 3 juillet)
-1. **Message d'erreur du Researcher** : *« Je ne suis pas en mesure de générer des jeux »* → décomposition de tâche défaillante dans le graph workflow
+1. **Message d'erreur du Researcher** : *« Je ne suis pas en mesure de générer des jeux »* → ✅ **résolu** (Sprint 1, commit `9539133`). Cause réelle : le MCP filesystem ne résolvait pas le chemin du CSR → researcher sans données → refus. Fix : chemin `app/imerys_csr_data.txt` + lecture obligatoire. Les captures baseline du 5 juil. montrent un run complet sans erreur.
 2. **Jeu généré sans données Clérac** : le config est peut-être bien produit mais soit vide soit non consommé par `game.js`
 3. **MCP calls non prouvés** au jury (bloquant pour le challenge)
 4. **Hallucinations d'assets** : le Coder référence des fichiers qui n'existent pas sur le disque
@@ -63,7 +63,7 @@ Ne JAMAIS copier via clé USB : `.venv/`, `__pycache__/`, `.env`, `.pytest_cache
 
 **Stack :**
 - `agents-cli` (wrapper autour d'ADK 2.0) pour scaffolding, playground, éval, déploiement
-- ADK 2.0 en **graph workflow** : Python functions décorées avec `@node`, `Workflow` object, `Event` yieldés
+- ADK 2.0 **« classique »** : `SequentialAgent` orchestrant deux `LlmAgent` (`researcher_agent` → `coder_agent`). ⚠️ Ce n'est PAS un graph workflow `@node`/`Workflow`/`Event` — voir `app/agent.py` (code réel) et `docs/AGENT_PROMPTS.md`. La mention « graph workflow » des versions antérieures de ce doc était erronée.
 - Modèles : `gemini-2.5-flash` pour Researcher, `gemini-2.5-pro` pour Coder
 - MCP : `@modelcontextprotocol/server-filesystem` avec tool filtering
 - Frontend jeu : Phaser 3, `game.js` hand-coded qui lit `level_config.json`
@@ -95,7 +95,7 @@ Reviewer [À CRÉER] (valide assets, richesse données, suggère améliorations)
 | Antérieur | Python 3.12 (pas 3.14) | Compat écosystème ADK |
 | Antérieur | Kenney Racing Pack au lieu de `top-down-vehicles` (inexistant) | Vérification asset proactive |
 | 3 juillet | **agents-cli au lieu d'adk direct** | Scaffolding + playground + observabilité + déploiement en un |
-| 3 juillet | **ADK 2.0 en graph workflow** (@node, Workflow, Event) | Version scaffoldée par agents-cli create |
+| 3 juillet | **ADK 2.0 « classique »** : `SequentialAgent(researcher → coder)`, state via `output_key` + template `{csr_summary}` | Plus fiable qu'un orchestrateur LLM ; le graph workflow `@node`/`Workflow`/`Event` n'a jamais été le code réel (correction 5 juil.) |
 | 3 juillet | **WSL 2 sur Windows** | Meilleure compat MCP (npx), supporté officiellement par agents-cli |
 | 3 juillet | **Manifeste d'assets en dur dans le prompt du Coder** | Contrer les hallucinations de chemins |
 | 3 juillet | **Ajout d'un 3ème agent Reviewer** | Valider assets + richesse données + suggérer améliorations |
@@ -106,7 +106,7 @@ Reviewer [À CRÉER] (valide assets, richesse données, suggère améliorations)
 ### Questions techniques encore ouvertes
 - **Choix du web MCP** : `mcp-server-fetch` (simple GET/scrape) vs `mcp-server-tavily` (recherche web) vs `mcp-server-brave-search` ? → recommandation actuelle : les deux (Tavily pour découvrir URLs, fetch pour récupérer contenu)
 - **Boucle Reviewer** : simple `SequentialAgent` avec 3 nodes ou `LoopAgent` qui itère jusqu'à validation ?
-- **Passage state entre agents en ADK 2.0** : à valider précisément (Context object au lieu de `output_key` ADK 1.x)
+- ~~**Passage state entre agents en ADK 2.0**~~ : ✅ **résolu** (lecture de `app/agent.py`, 5 juil.). Le researcher a `output_key="csr_summary"` → sa réponse texte est écrite dans `session.state["csr_summary"]` ; le coder la récupère via le template `{csr_summary}` dans son instruction. Pas de `Context object`, pas d'edges explicites.
 
 ---
 
@@ -142,7 +142,7 @@ eco-mine-generator/
 
 ### Sprint 1 — Correction bloquants (1-2 jours) 🚨 EN COURS
 - [ ] Fixer les prompts Researcher/Coder pour résoudre le message d'erreur
-- [ ] Vérifier passage de données via `session.state` en ADK 2.0 (Context object)
+- [x] Vérifier passage de données via `session.state` en ADK 2.0 — ✅ `output_key="csr_summary"` + template `{csr_summary}` (pas de Context object)
 - [ ] Prouver appels MCP via playground debug view (captures pour le jury)
 - [ ] Créer `ASSET_MANIFEST.md` exhaustif
 - [ ] Ajouter manifeste au prompt du Coder + validation post-génération
@@ -167,7 +167,7 @@ eco-mine-generator/
 - [ ] Fond d'écran diversifié via Pillow (tile slicer avec blend des bords)
 
 ### Sprint 4 — Reviewer agent + démo (1 jour)
-- [ ] Créer 3ème agent Reviewer dans le graph workflow ADK 2.0
+- [ ] Créer 3ème agent Reviewer dans le `SequentialAgent` ADK 2.0 (ajouter un `LlmAgent` aux `sub_agents`)
 - [ ] Reviewer valide assets, note richesse contenu, suggère améliorations
 - [ ] Capture démo vidéo montrant les 3 agents + debug view MCP
 - [ ] Writeup Kaggle
