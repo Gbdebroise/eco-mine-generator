@@ -1,6 +1,6 @@
 # HANDOFF — Eco-Mine Generator / Mission Clérac
 
-> **Date** : 3 juillet 2026
+> **Date** : 5 juillet 2026
 > **Auteur du projet** : Bertrand
 > **Contexte** : Capstone Google × Kaggle AI Agents Intensive Vibe Coding
 > **But de ce document** : reprendre le projet dans une nouvelle conversation Claude ou dans Claude Code sans perdre le contexte accumulé.
@@ -16,10 +16,11 @@ décisions prises, et la roadmap. Merci de le lire attentivement avant qu'on con
 
 [Coller ici le contenu de HANDOFF.md]
 
-On en est au Sprint 1 : corriger l'architecture de la pipeline (message d'erreur du 
-Researcher, preuve MCP, hallucinations d'assets). Prochaine action concrète : 
-réécrire les instructions des agents Researcher et Coder. Stack : agents-cli 
-+ ADK 2.0 « classique » (SequentialAgent, state via output_key + template). 
+Sprint 1 est TERMINÉ (prompts corrigés, preuve MCP, manifeste d'assets). On en est 
+au Sprint 2 : enrichissement narratif. Les 2 web MCP (Tavily + Fetch) viennent d'être 
+branchés au Researcher dans app/agent.py (étape 2.3). Prochaine action concrète : 
+test de connectivité MCP dans le playground + captures debug view (étape 2.4). Stack : 
+agents-cli + ADK 2.0 « classique » (SequentialAgent, state via output_key + template). 
 
 IMPORTANT : je développe sur un PC (Windows natif, édition uniquement) et je teste 
 sur un autre PC (WSL 2, pipeline complet). Sync via git bundle sur clé USB. 
@@ -29,7 +30,7 @@ d'édition — ils ne sont pas installés ici.
 
 ---
 
-## 📌 État actuel du projet (au 3 juillet 2026)
+## 📌 État actuel du projet (au 5 juillet 2026)
 
 ### Contexte d'exécution ⚠️
 **Le projet est développé sur deux machines distinctes.**
@@ -49,6 +50,7 @@ Ne JAMAIS copier via clé USB : `.venv/`, `__pycache__/`, `.env`, `.pytest_cache
 - Génération d'un `level_config.json` par le Coder consommé par un `game.js` Phaser 3 hand-coded
 - Génération d'une image de fond de Clérac via Imagen 3
 - MCP filesystem (`@modelcontextprotocol/server-filesystem`) branché avec filtrage des tools (Researcher = read only, Coder = write only)
+- **Web MCP branchés au Researcher (Sprint 2, étape 2.3, commit `95f6b8c`)** : `tavily-mcp` (recherche web, clé `TAVILY_API_KEY`) + `@modelcontextprotocol/server-fetch` (lecture URL), déclarés dans `app/agent.py` (`tools=[fs_read, web_search, web_fetch]`). Le Coder reste filesystem-only. ⚠️ Connectivité **pas encore testée** en playground (étape 2.4).
 
 ### Ce qui ne fonctionne pas (problèmes identifiés lors du test du 3 juillet)
 1. **Message d'erreur du Researcher** : *« Je ne suis pas en mesure de générer des jeux »* → ✅ **résolu** (Sprint 1, commit `9539133`). Cause réelle : le MCP filesystem ne résolvait pas le chemin du CSR → researcher sans données → refus. Fix : chemin `app/imerys_csr_data.txt` + lecture obligatoire. Les captures baseline du 5 juil. montrent un run complet sans erreur.
@@ -112,59 +114,74 @@ Reviewer [À CRÉER] (valide assets, richesse données, suggère améliorations)
 
 ## 📂 Structure documentaire du repo
 
-**Déjà en place (3 juillet 2026)** :
+**État au 5 juillet 2026** :
 ```
 eco-mine-generator/
 ├── CLAUDE.md                    ✅ créé — lu auto par Claude Code
 ├── GEMINI.md                    ✅ créé — lu auto par Gemini CLI (contenu synchronisé avec CLAUDE.md)
 └── docs/
-    └── HANDOFF.md               ✅ ce document
+    ├── HANDOFF.md               ✅ ce document
+    ├── ARCHITECTURE.md          ✅ créé (5 juil.) — pipeline, MCP wiring diagram
+    ├── DECISIONS.md             ✅ créé — journal ADR-lite
+    ├── AGENT_PROMPTS.md         ✅ créé — instructions littérales des agents
+    └── ASSET_MANIFEST.md        ✅ créé — inventaire réel des assets (layout kenney/)
 ```
 
 **Restent à créer dans `docs/`** :
 ```
 ├── PROJECT_CONTEXT.md       ← vision, pitch capstone, contraintes jury
-├── ARCHITECTURE.md          ← pipeline, ADK 2.0, MCPs, flux de données
-├── DECISIONS.md             ← journal ADR-lite (tableau ci-dessus l'amorce)
-├── ROADMAP.md               ← les 4 sprints avec cases à cocher
-├── AGENT_PROMPTS.md         ← instructions littérales des 3 agents
-├── ASSET_MANIFEST.md        ← table exhaustive assets réels + URLs sources
+├── ROADMAP.md               ← les 4 sprints avec cases à cocher (dupliqué ici pour l'instant)
 └── GAMEPLAY_SPEC.md         ← scoring, obstacles, badges, narratif
 ```
-
-**Plan de rédaction restant :**
-- **Option A** (rapide) : rédiger les 4 docs stratégiques (PROJECT_CONTEXT, DECISIONS, ROADMAP, GAMEPLAY_SPEC) dans le chat, copier-coller dans le repo
-- **Option B** : rédiger les 3 docs techniques (ARCHITECTURE, AGENT_PROMPTS, ASSET_MANIFEST) dans Claude Code qui a accès au code réel
 
 ---
 
 ## 🗺️ Roadmap 4 sprints
 
-### Sprint 1 — Correction bloquants (1-2 jours) 🚨 EN COURS
-- [ ] Fixer les prompts Researcher/Coder pour résoudre le message d'erreur
+### Sprint 1 — Correction bloquants (1-2 jours) ✅ TERMINÉ (5 juillet 2026)
+- [x] Fixer les prompts Researcher/Coder pour résoudre le message d'erreur — ✅ commit `9539133` (cause : chemin CSR non résolu) + durcissement prompts commit `06553a2`
 - [x] Vérifier passage de données via `session.state` en ADK 2.0 — ✅ `output_key="csr_summary"` + template `{csr_summary}` (pas de Context object)
-- [ ] Prouver appels MCP via playground debug view (captures pour le jury)
-- [ ] Créer `ASSET_MANIFEST.md` exhaustif
-- [ ] Ajouter manifeste au prompt du Coder + validation post-génération
-- [ ] Vérifier que `level_config.json` contient les données Clérac ET que `game.js` les affiche
+- [x] Prouver appels MCP via playground debug view (captures pour le jury) — ✅ captures baseline `docs/screenshots/sprint1-baseline/` (run complet sans erreur)
+- [x] Créer `ASSET_MANIFEST.md` exhaustif — ✅ commits `25ee8e7` / `d9c1bc6` (layout `public/assets/kenney/`)
+- [x] Ajouter manifeste au prompt du Coder + validation post-génération — ✅ commit `735b822` (contrainte d'assets + `missing_assets`)
+- [x] Vérifier que `level_config.json` contient les données Clérac ET que `game.js` les affiche — ✅ validé sur captures baseline (labels courts, biome cohérent)
 
-### Sprint 2 — Enrichissement narratif (1-2 jours)
-- [ ] Ajouter web MCP au Researcher (fetch + Tavily probable)
-- [ ] Étendre biodiversité au-delà des chênes : rollier d'Europe, guêpier, engoulevent, crapaud calamite, lézard ocellé, loutre, orchidées, bruyères, azuré du serpolet, oedipode
-- [ ] Générer histoire d'intro contextualisée (« Bertrand, ingénieur Imerys, vous appelle en renfort... »)
-- [ ] Messages contextuels en cours de jeu (pop-up 2s à chaque collecte)
-- [ ] Récap de fin avec faits Clérac + espèces sauvées
+### Sprint 2 — Enrichissement narratif (1-2 jours) 🚨 EN COURS
+- [x] **2.1** — Compte Tavily créé, clé API dans `.env` sur PC de test
+- [x] **2.2** — Configurer `tavily-mcp` et `fetch-mcp` (dans `app/agent.py`, PAS le manifest — la config MCP est programmatique via `McpToolset`, pas dans `agents-cli-manifest.yaml`)
+- [x] **2.3** — Brancher les 2 nouveaux MCP au Researcher (pas au Coder) — ✅ commit `95f6b8c`, `tools=[fs_read, web_search, web_fetch]`
+- [ ] **2.4** — Test de connectivité MCP dans le playground + captures ← **POINT DE VALIDATION** (PC de test) : valide 2.3 **et** le batch 2.5-2.8 ci-dessous
+- [x] **2.5** — Modifier le prompt Researcher pour exploiter le web — ✅ *code écrit, non testé* : nouvelle ÉTAPE 3 Tavily→Fetch dans `app/agent.py`
+- [x] **2.6** — Étendre la biodiversité au-delà des chênes — ✅ *code écrit, non testé* : champ `biodiversity_species[]` (4-8 espèces web/CSR) + `headline_fact` en sortie Researcher. Espèces cibles : rollier d'Europe, guêpier, engoulevent, crapaud calamite, lézard ocellé, loutre, orchidées, bruyères, azuré du serpolet, oedipode
+- [x] **2.7** — Générer histoire d'intro contextualisée — ✅ *code écrit, non testé* : `ui_strings.intro_story` généré par le Coder, rendu par une nouvelle `StoryScene` dans `game.js`
+- [x] **2.8** — Messages contextuels in-game + récap de fin — ✅ *code écrit, non testé* : `ui_strings.eco_facts[]` (bannière 2s sur collecte éco) + `ui_strings.end_recap` (écran GAME OVER avec espèces défendues)
 
-### Sprint 3 — Polish gameplay (1-2 jours)
-- [ ] Nouveaux obstacles : bâtons de dynamite (avec explosion Pillow), trous, zones d'eau, camions adverses colorés
-- [ ] Nuages de poussière derrière le camion joueur (Phaser ParticleEmitter)
-- [ ] Sacs et big bags collectibles (icônes à trouver)
-- [ ] Produits issus des minéraux (idée à préciser)
-- [ ] Transformation en oiseau/animal au-delà d'un seuil de points Green
-- [ ] Difficulté progressive (`speed *= 1.1` tous les 500m, nouveaux obstacles tous les 1000m)
-- [ ] Pseudo joueur + leaderboard (localStorage ou window.storage shared)
-- [ ] Badge Imerys Green (SVG arbre doré, débloqué si score > 5000 ET points Green > 30)
-- [ ] Fond d'écran diversifié via Pillow (tile slicer avec blend des bords)
+> ⚠️ **2.5-2.8 sont codés mais PAS encore validés** (machine d'édition, pas de pipeline).
+> La prochaine session sur le PC de test doit faire UNE passe playground qui couvre 2.4
+> (connectivité MCP) + vérifier que le Researcher renvoie `biodiversity_species`, que le
+> Coder produit `intro_story`/`eco_facts`/`end_recap`, et que `game.js` les affiche
+> (StoryScene → menu → faits in-game → récap). Voir « Prochaines actions ».
+
+### Sprint 3 — Gameplay & Meta (1-2 jours) 🚨 EN COURS (code écrit, non testé)
+- [x] Dynamite (explosion particules + camera shake, malus non fatal) — ✅ *code écrit* : `obstacles.dynamite` + `hitDynamite()` dans `game.js` v4
+- [x] Zones d'eau (bande de ralentissement) — ✅ *code écrit* : `zones.water` + `spawnWaterZone()`/`playerInWater()`
+- [x] Camions ennemis colorés (game over) — ✅ *code écrit* : `entities.enemy_trucks` + groupe `enemyTrucks`
+- [x] Difficulté progressive (courbe config-driven) — ✅ *code écrit* : module `public/src/difficulty.js` (`getDifficulty`) + section `difficulty`
+- [x] Pseudo joueur + leaderboard (localStorage) — ✅ *code écrit* : module `public/src/leaderboard.js` + `LeaderboardScene`
+- [x] Badge Imerys Green (seuils config) — ✅ *code écrit* : `thresholds.green_badge` + `BadgeScene` (placeholder `assets/ui/badge_green.png`)
+- [x] Schéma config étendu + exemple + prompt Coder — ✅ `docs/level_config_schema.md`, `public/configs/examples/level_config.sprint3.json`, `app/agent.py`
+- [ ] Nuages de poussière derrière le camion joueur (Phaser ParticleEmitter) — reporté
+- [ ] Sacs et big bags collectibles (icônes à trouver) — reporté
+- [ ] Produits issus des minéraux (idée à préciser) — reporté
+- [ ] Transformation en oiseau/animal au-delà d'un seuil de points Green — reporté
+- [ ] Fond d'écran diversifié via Pillow (tile slicer avec blend des bords) — reporté
+
+> ⚠️ **Tout le Sprint 3 est codé mais PAS validé** (machine d'édition). Prochaine session
+> PC de test : servir `public/` et ouvrir
+> `?config=configs/examples/level_config.sprint3.json` (rendu manuel), puis un run
+> `agents-cli playground` pour vérifier que le Coder remplit les 5 sections. Voir
+> `CHANGELOG.md` § Validation. `game.js` charge désormais en **ES module** → servir en
+> HTTP (pas d'ouverture `file://`).
 
 ### Sprint 4 — Reviewer agent + démo (1 jour)
 - [ ] Créer 3ème agent Reviewer dans le `SequentialAgent` ADK 2.0 (ajouter un `LlmAgent` aux `sub_agents`)
@@ -226,24 +243,24 @@ Le Researcher doit générer ces listes automatiquement via web MCP, pas les avo
 
 ## 🔧 Prochaines actions concrètes
 
-**Étape immédiate** : commencer Sprint 1, action 1 → **réécrire les instructions du Researcher et du Coder**.
+**Étape immédiate** : **UNE passe de validation playground** couvrant 2.4 (connectivité MCP) + le batch 2.5-2.8 (déjà codé sur la machine d'édition, jamais exécuté).
 
-Pour ça il faut (sur la machine d'édition) :
-1. Ouvrir le code actuel de `app/agent.py` (Claude Code idéal ici)
-2. Extraire les prompts existants → les mettre dans `docs/AGENT_PROMPTS.md`
-3. Les réécrire en tenant compte de :
-   - Le Researcher doit accepter la sous-tâche « extrait données Clérac » sans refuser
-   - Le Coder doit consommer explicitement `state["clerac_data"]`
-   - Le Coder doit référencer UNIQUEMENT les assets du manifeste
-4. `git add . && git commit -m "Sprint 1: fix agent prompts"`
-5. `git bundle create /d/ecomine.bundle master` (clé USB)
+Sur la machine de test (WSL 2) :
+1. `git pull /mnt/d/ecomine.bundle master`
+2. Vérifier que `TAVILY_API_KEY` est présente dans le `.env` local (non synchronisé via bundle)
+3. `uv sync` si besoin, puis `agents-cli playground` → `localhost:8080`
+4. Lancer un run complet → vérifier dans la debug view :
+   - `tool_use` **Tavily** puis **Fetch** côté Researcher (2.4 + 2.5), en plus du `read_text_file` du CSR
+   - `csr_summary` contient `biodiversity_species` (4-8 espèces) + `headline_fact` (2.6)
+   - `level_config.json` écrit par le Coder contient `intro_story` / `eco_facts` / `end_recap` (2.7 + 2.8)
+5. Capturer ces événements pour le jury
+6. **Rendu jeu** (testable sans agent) : servir `public/` (ex. `python -m http.server` dans `public/`) et vérifier `StoryScene` (intro) → menu → bannières de faits en jeu → écran GAME OVER avec récap + espèces. Le `level_config.json` committé porte déjà des valeurs Clérac étendues.
 
-Puis (sur la machine de test) :
-6. `git pull /mnt/d/ecomine.bundle master`
-7. `agents-cli playground` → tester dans le debug view sur `localhost:8080`
-8. Capturer les événements `tool_use` / `tool_result` MCP pour le jury
+**⚠️ Point de vigilance identifié à l'édition** : la commande `npx @modelcontextprotocol/server-fetch` suit la consigne donnée, mais le serveur fetch officiel de référence est en **Python** (`uvx mcp-server-fetch`), pas npm. Si le premier `npx` renvoie un `404 npm`, basculer sur `uvx mcp-server-fetch` ou un port npm tiers (`fetcher-mcp`, `@kazuph/mcp-fetch`) — voir la note dans `docs/DECISIONS.md`.
 
-**Question à trancher avant** : version exacte d'ADK 2.0 utilisée et syntaxe précise pour passer le state entre nodes (à confirmer en regardant le code réel côté Claude Code).
+**⚠️ 2e point** : les noms exacts des outils Tavily/Fetch ne sont pas connus (2.4 non fait). Les prompts les désignent de façon générique. Si l'agent n'appelle pas le bon outil, préciser le nom réel (visible dans la debug view / `agents-cli info`) dans le prompt Researcher.
+
+**Après validation** : cocher définitivement 2.4-2.8, puis passer au Sprint 3 (polish gameplay).
 
 ---
 
@@ -267,4 +284,4 @@ Puis (sur la machine de test) :
 
 ---
 
-*Fin du document HANDOFF. À jour au 3 juillet 2026.*
+*Fin du document HANDOFF. À jour au 5 juillet 2026 (Sprint 2 en cours, étape 2.4).*

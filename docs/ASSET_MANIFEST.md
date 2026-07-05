@@ -34,6 +34,14 @@ de test (rendu non vérifiable sur la machine d'édition).
 | `assets/blast.png` | Danger « Blasting Zone » | explosion-pack → `PNG/Ground explosion/groundExplosion05.png` | ⚠️ frame unique |
 | `assets/grove.png` | Bosquet / châtaigneraie | foliage-pack → `Tilesheet/treeLeaves_default.png` | ⚠️ feuillage |
 | `assets/spark.png` | Particule / étincelle | explosion-pack → `PNG/Particles/burst.png` | ⚠️ éclat |
+| `assets/dynamite.png` | Dynamite (obstacle malus, Sprint 3) | physics-assets → `PNG/Explosive elements/elementExplosive*.png` | ⚠️ **placeholder code** (fichier non copié) |
+| `assets/enemy_truck.png` | Camion adverse (game over, Sprint 3) | racing-pack → `PNG/Cars/car_red_1.png` | ⚠️ **placeholder code** (fichier non copié) |
+
+> **Sprint 3** : `dynamite`, `enemy_truck` (et le badge, plus bas) suivent le pattern
+> établi de `game.js` : le sprite est chargé s'il existe à la racine `assets/`, sinon
+> `game.js` **dessine un placeholder par code** (404 console = normal). Les sources
+> Kenney ci-dessus sont dans la bibliothèque `public/assets/kenney/` mais **pas encore
+> copiées/renommées** à la racine — à faire sur la machine de test pour un rendu final.
 
 ---
 
@@ -173,7 +181,9 @@ console = normal) :
 - `assets/granite_underground_far.png` / `_near.png` — biome mine souterraine (Beauvoir)
 - `assets/wetland_far.png` / `_near.png` — biome zone humide (Provins) — piocher dans `kenney/fish-pack/`
 - `assets/diatomite_far.png` / `_near.png` — biome diatomite (Foufouilloux)
-- `assets/badge_imerys_green.svg` — badge arbre doré (score > 5000 ET Green > 30), voir GAMEPLAY_SPEC
+- `assets/ui/badge_green.png` — badge arbre doré (Sprint 3 ; chargé par `BadgeScene`, placeholder code si absent). Base : `kenney/medals/PNG/`. Fournir l'asset final ici.
+- `assets/dynamite.png` — dynamite Sprint 3 (placeholder code en attendant la copie depuis `kenney/physics-assets/`)
+- `assets/enemy_truck.png` — camion adverse Sprint 3 (placeholder code en attendant la copie depuis `kenney/racing-pack/`)
 - `assets/generated/background_clerac_tile.png` — tuile de fond à découper via Pillow (Sprint 3)
 
 ---

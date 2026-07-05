@@ -120,3 +120,124 @@ Researcher qui interroge le web produit des `tool_use` Tavily puis Fetch visible
 la debug view, en plus du `read_text_file` sur le CSR. Prérequis : `TAVILY_API_KEY`
 présente dans `.env`, et disponibilité des paquets npm `tavily-mcp` /
 `@modelcontextprotocol/server-fetch` au premier `npx`.
+
+---
+
+## 2026-07-05 — Sprint 2 : contrat narratif (biodiversité, intro, in-game, récap)
+
+**Contexte** : étapes 2.5→2.8. Le jeu affichait des labels bruts sans contexte. On veut
+un contenu narratif **généré par les agents** (argument capstone) : biodiversité élargie,
+histoire d'intro, messages éducatifs en jeu, récap de fin.
+
+**Décision** : étendre le **contrat de données** du pipeline sans changer les rôles
+(règle CLAUDE.md #5 : le Coder ne produit qu'un `level_config.json`, `game.js` est le
+moteur fixe qui le consomme).
+- **Researcher** (extraction + web) ajoute 2 clés à `csr_summary` : `headline_fact`
+  (phrase source) et `biodiversity_species` (4-8 espèces réelles, web-enrichies).
+- **Coder** (assemblage + narration) ajoute `biodiversity_species` (passthrough) et 3
+  textes dans `ui_strings` : `intro_story`, `eco_facts[]`, `end_recap`.
+- **`game.js`** (édité à la main) gagne : une `StoryScene` (intro avant menu), une
+  bannière 2s `showFact()` sur collecte éco (rotation `eco_facts`), et un écran de fin
+  enrichi (`end_recap` + espèces). `DEFAULT_CONFIG` porte des valeurs Clérac par défaut.
+
+**Séparation des responsabilités** — pourquoi l'intro/facts/recap côté **Coder** et pas
+Researcher : le Researcher est `flash`, cadré « extraction, jamais de génération » ; la
+rédaction narrative est une tâche créative confiée au Coder `pro`, qui compose déjà les
+`ui_strings`. Le Researcher fournit la matière première (espèces + fait source).
+
+**Alternative rejetée** : intro/facts générés par le Researcher → **rejeté**, brouille
+le verrou anti-refus « tu fais de l'extraction, pas de la génération » et mélange data et
+prose dans `csr_summary`.
+
+**Alternative rejetée** : intro affichée directement dans le `MenuScene` → **rejeté**,
+l'écran (480×640) est déjà chargé (titre, légende, bouton) ; une `StoryScene` dédiée est
+plus lisible et n'entre pas en collision avec le layout existant.
+
+**Alternative rejetée** : faire générer le HTML/JS du jeu par le Coder → **rejeté**
+(règle #5, source d'hallucinations). Toute nouveauté visuelle passe par une clé de config
++ un rendu hand-coded dans `game.js`.
+
+**Impact attendu** (à valider en playground, étape 2.4) : `level_config.json` gagne
+`biodiversity_species` + `intro_story`/`eco_facts`/`end_recap` ; le jeu affiche l'intro,
+des faits en cours de partie, et un récap contextualisé. `game.js` reste rétro-compatible
+(merge `DEFAULT_CONFIG` → clés manquantes = fallback Clérac).
+
+---
+
+## 2026-07-05 — Sprint 3 : extension du schéma config (5 sections gameplay)
+
+**Contexte** : le gameplay se limitait à 3 spawns (mineral/bird/blast+grove) et une rampe
+de vitesse en dur (`speed += 25` toutes les 10 s). Insuffisant pour un jury (mécaniques
+variées, difficulté qui monte). On veut enrichir SANS violer la règle #5 (config-driven :
+l'agent ne touche pas `game.js`).
+
+**Décision** : ajouter **5 sections top-level** au `level_config.json` — `obstacles.dynamite`,
+`zones.water`, `entities.enemy_trucks`, `difficulty`, `thresholds.green_badge` — toutes
+**optionnelles avec défauts** dans le loader de `game.js` (`mergeConfig`). Le contrat complet
+est figé dans le nouveau `docs/level_config_schema.md`, avec un exemple canonique
+`public/configs/examples/level_config.sprint3.json`. Le prompt du Coder reçoit les 5 sections
++ des plages de valeurs + un garde-fou « jamais de `spawn_weight` à 0 ».
+
+**Rétro-compatibilité** : exigence explicite du sprint. Un config Sprint 2 (sans ces sections)
+doit booter à l'identique → chaque section absente est complétée par `DEFAULT_CONFIG`, et
+`difficulty.speed_start_px_per_s` retombe sur le `scrolling_speed` legacy.
+
+**Alternative rejetée** : renommer/supprimer `scrolling_speed` au profit de `difficulty` →
+**rejeté**, casserait les configs existants. On le garde comme fallback.
+
+**Alternative rejetée** : faire générer les nouvelles mécaniques en code Phaser par le Coder →
+**rejeté** (règle #5). Data-only + moteur hand-coded.
+
+**Impact attendu** : `agents-cli` produit un config avec les 5 sections remplies dans les
+plages ; `game.js` v4 les consomme. À valider en playground + rendu manuel.
+
+---
+
+## 2026-07-05 — Sprint 3 : `game.js` en ES modules (`src/difficulty.js`, `src/leaderboard.js`)
+
+**Contexte** : le sprint demande deux modules réutilisables et testables — `getDifficulty`
+(courbe de difficulté) et une API leaderboard (`add`/`getTop`/`clear`) — en vue de l'éval du
+Sprint 4. `game.js` était jusque-là un unique `<script>` classique référençant le global
+`Phaser` (CDN).
+
+**Décision** : passer le chargement de `game.js` en `<script type="module">` (dans
+`public/index.html`) et extraire la logique dans `public/src/difficulty.js` +
+`public/src/leaderboard.js` avec de vrais `export`. `game.js` les `import`. Phaser reste un
+global CDN (accessible depuis un module). Les deux modules sont **purs / dégradation douce**
+(pas de dépendance Phaser) → importables tels quels en Node pour les tests Sprint 4.
+
+**Alternative rejetée** : scripts classiques attachant `window.Difficulty` / `window.Leaderboard`
+→ **rejeté**, moins propre pour l'éval (pas d'`import` direct, pollution du global). Choix
+confirmé avec l'utilisateur.
+
+**Conséquence / limite** : les ES modules imposent de servir le jeu en HTTP (`python -m
+http.server`) — l'ouverture directe en `file://` est cassée par la politique CORS des modules.
+Sans impact : le workflow de test passe déjà par un serveur HTTP.
+
+---
+
+## 2026-07-05 — Sprint 3 : override `?config=` + dynamite distincte du `blast`
+
+**Contexte** : (1) besoin de tester le config d'exemple Sprint 3 sans lancer d'agent ni
+écraser le `level_config.json` live. (2) La dynamite (malus, non fatale) et la « Blasting
+Zone » (`blast`, game over) sont deux dangers de nature différente.
+
+**Décision** :
+- **`?config=<chemin>`** : `BootScene` lit un paramètre d'URL optionnel et charge ce config
+  à la place de `level_config.json`. Non destructif, testable :
+  `http://localhost:8000/?config=configs/examples/level_config.sprint3.json`. Choix confirmé
+  avec l'utilisateur.
+- **Dynamite ≠ blast** : la dynamite (`obstacles.dynamite`) applique `score_malus` +
+  `green_malus` et continue la partie ; le `blast` historique (`danger_obstacle`) reste un
+  game over immédiat, au même titre que le nouveau `enemy_truck`. Deux groupes physiques
+  distincts dans `game.js`.
+
+**Alternative rejetée** : copier l'exemple sur `public/level_config.json` pour le tester →
+**rejeté**, destructif (écrase la sortie d'agent) et non rejouable. Le `?config=` est
+non-invasif.
+
+**Alternative rejetée** : réutiliser le sprite/groupe `blast` pour la dynamite → **rejeté**,
+sémantique et effet opposés (fatal vs malus) ; garder deux entités évite les bugs de collision.
+
+**Impact attendu** : test manuel du gameplay Sprint 3 possible sans pipeline ; scoring et
+game over cohérents (blast + enemy_truck = fatal ; dynamite + grove = malus).
