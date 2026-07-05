@@ -55,28 +55,39 @@ fs_write = McpToolset(
 researcher_agent = LlmAgent(
     name="researcher_agent",
     model=Gemini(model="gemini-2.5-flash"),
-    instruction="""Tu es l'agent Eco-Researcher.
+    instruction="""Tu es l'agent Eco-Researcher, un EXTRACTEUR de donnees documentaires.
+    Ta tache est TOUJOURS d'extraire des donnees depuis un fichier CSR - jamais de
+    generer un jeu ni du code. C'est une tache d'extraction : accepte-la toujours,
+    ne reponds JAMAIS que tu n'es pas capable de generer un jeu.
 
     ETAPE 1 - LIRE (obligatoire avant toute reponse) :
     Appelle read_text_file sur le chemin exact 'app/imerys_csr_data.txt'.
     Si erreur "not found", appelle list_directory sur '.' puis sur 'app' pour
     localiser le fichier, puis reessaie. Ne reponds JAMAIS avant d'avoir lu le fichier.
 
-    ETAPE 2 - EXTRAIRE :
+    ETAPE 2 - EXTRAIRE (labels COURTS, fideles au fichier) :
     Trouve la section « SITE: <nom> » correspondant au site demande par l'utilisateur
     (par defaut "Clerac" si aucun site n'est precise ; la comparaison ignore les accents).
-    Recopie les termes EXACTS du fichier - n'invente et ne generalise AUCUNE valeur.
-    Ex. pour Clerac : mineral_name = "Chamotte" (PAS "Clay"),
-    danger_obstacle = "Blasting Zone" (PAS "Landslide").
+    Pour chaque champ, produis un LABEL COURT de 2 a 4 mots, derive STRICTEMENT du
+    fichier - n'invente et ne generalise AUCUNE valeur. Ne recopie PAS les phrases
+    entieres du fichier : condense-les en label affichable a l'ecran.
+    Ex. pour Clerac, le fichier dit :
+      "Chamotte (calcined refractory clay / kaolinitic clay)"      -> "Chamotte Clay"
+      "Migratory birds, monitored ... with the ... (MNHN)..."      -> "Migratory Birds (MNHN)"
+      "Chestnut groves deliberately left unmined to shelter bats"  -> "Chestnut Groves (bats)"
+      "Blasting zones in the active quarry."                       -> "Blasting Zone"
+    (garde "Chamotte Clay", PAS "Clay" ; "Blasting Zone", PAS "Landslide")
 
-    ETAPE 3 - RENVOYER un objet JSON strict avec ces cles :
+    ETAPE 3 - RENVOYER un objet JSON strict avec EXACTEMENT ces cles :
       - site_name
-      - mineral_name        (minerai exact, ex: "Chamotte")
-      - eco_target          (cible ecologique exacte, ex: "Migratory Birds (MNHN)")
-      - protected_area      (zone protegee exacte, ex: "Chestnut groves (bats)")
-      - danger_obstacle     (danger exact, ex: "Blasting Zone")
+      - mineral_name        (label court, ex: "Chamotte Clay")
+      - eco_target          (label court, ex: "Migratory Birds (MNHN)")
+      - protected_area      (label court, ex: "Chestnut Groves (bats)")
+      - danger_obstacle     (label court, ex: "Blasting Zone")
 
-    Pas de markdown, pas de texte autour. Uniquement le JSON.
+    FORMAT DE SORTIE (imperatif) : ta reponse doit COMMENCER par le caractere '{'
+    et FINIR par le caractere '}'. AUCUN fence markdown (n'ecris pas ```json ni ```),
+    aucun texte avant ou apres. Uniquement l'objet JSON.
     Si une info est absente du fichier pour ce site, mets "N/A" - ne l'invente pas.
     """,
     tools=[fs_read],
@@ -91,8 +102,14 @@ coder_agent = LlmAgent(
     Voici les donnees reelles extraites par le chercheur (NE LES MODIFIE PAS) :
     {csr_summary}
 
+    L'entree ci-dessus peut etre entouree de delimiteurs markdown (```json ... ```)
+    ou contenir du texte autour. Ignore ces delimiteurs et ce texte : lis UNIQUEMENT
+    l'objet JSON et ses cles (site_name, mineral_name, eco_target, protected_area,
+    danger_obstacle).
+
     Recopie EXACTEMENT site_name, mineral_name, eco_target et danger_obstacle depuis
-    ces donnees. N'invente et ne generalise aucune valeur (garde "Chamotte", pas "Clay").
+    ces donnees (ce sont deja des labels courts). N'invente, ne rallonge et ne
+    generalise aucune valeur (garde "Chamotte Clay", pas "Clay" ni la phrase complete).
 
     Choisis le champ "biome" dans CETTE LISTE EXACTE selon le minerai / type d'operation :
       - "clay_quarry"          -> argile / kaolin / chamotte à ciel ouvert
