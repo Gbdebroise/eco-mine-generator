@@ -94,3 +94,29 @@ avant `write_file`, ne référence aucun chemin hors manifeste, et déclare les 
 `missing_assets`. Note : le schéma actuel du config ne porte encore aucun chemin d'asset
 (`game.js` charge via `OBJECT_ASSETS`), donc la contrainte est surtout un garde-fou +
 preuve MCP tant que le config ne référence pas d'assets. À valider dans la debug view.
+
+---
+
+## 2026-07-05 - Ajout web MCP au Researcher
+
+**Contexte** : la biodiversité et le contexte narratif ne peuvent pas venir
+uniquement de `imerys_csr_data.txt` (trop pauvre).
+
+**Décision** : Tavily pour la découverte de sources + fetch pour la lecture du
+contenu. Les deux MCP sont branchés **au Researcher uniquement** (`tools=[fs_read,
+web_search, web_fetch]` dans `app/agent.py`) ; le Coder reste confiné au filesystem.
+Clé `TAVILY_API_KEY` passée au serveur `tavily-mcp` via `env` depuis `.env`. Prompts
+Researcher/Coder **inchangés à ce stade** (l'exploitation des nouveaux outils sera
+prompted dans une étape ultérieure, une fois la config MCP validée en playground).
+
+**Alternative rejetée** : fetch seul (impossible de découvrir de nouvelles URLs sans
+moteur de recherche).
+
+**Alternative rejetée** : Brave (Tavily est spécifiquement conçu pour les agents IA,
+meilleurs résultats structurés).
+
+**Impact attendu** (à valider sur le PC de test via `agents-cli playground`) : un run
+Researcher qui interroge le web produit des `tool_use` Tavily puis Fetch visibles dans
+la debug view, en plus du `read_text_file` sur le CSR. Prérequis : `TAVILY_API_KEY`
+présente dans `.env`, et disponibilité des paquets npm `tavily-mcp` /
+`@modelcontextprotocol/server-fetch` au premier `npx`.

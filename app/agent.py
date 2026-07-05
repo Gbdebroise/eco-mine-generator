@@ -51,6 +51,30 @@ fs_write = McpToolset(
     tool_filter=["write_file", "read_text_file"],
 )
 
+# === MCP web (Sprint 2) : réservés au Researcher ===
+# Le Coder N'A PAS accès au web (filesystem uniquement).
+#   - Tavily : moteur de recherche pensé pour les agents IA (résultats structurés).
+#     Clé attendue dans TAVILY_API_KEY (chargée depuis .env par agents-cli).
+#   - Fetch : récupère le contenu HTML/texte d'une URL découverte via Tavily.
+web_search = McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=StdioServerParameters(
+            command="npx",
+            args=["-y", "tavily-mcp"],
+            env={"TAVILY_API_KEY": os.environ.get("TAVILY_API_KEY", "")},
+        ),
+    ),
+)
+
+web_fetch = McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=StdioServerParameters(
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-fetch"],
+        ),
+    ),
+)
+
 # === Agent 1 : Chercheur RSE ===
 researcher_agent = LlmAgent(
     name="researcher_agent",
@@ -90,7 +114,7 @@ researcher_agent = LlmAgent(
     aucun texte avant ou apres. Uniquement l'objet JSON.
     Si une info est absente du fichier pour ce site, mets "N/A" - ne l'invente pas.
     """,
-    tools=[fs_read],
+    tools=[fs_read, web_search, web_fetch],
     output_key="csr_summary",
 )
 
