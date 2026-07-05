@@ -1,81 +1,196 @@
-# ASSET_MANIFEST — assets réels sur disque
+# ASSET_MANIFEST — sources d'assets autorisées
 
-> **Règle CLAUDE.md #1** : le Coder ne doit JAMAIS référencer un asset absent de ce
-> manifeste. Toute référence d'asset dans le code ou un prompt doit exister ici ET
-> sur le disque (`public/assets/`).
+## Règle absolue
+
+Le Coder ne doit JAMAIS référencer un chemin d'asset qui n'est pas listé dans
+ce document. Toute référence à un asset absent de ce manifeste sera considérée
+comme une hallucination et le `level_config.json` généré sera rejeté par le Reviewer.
+
+> **Provenance & vérification** : tous les assets Kenney proviennent du bundle
+> *Game Assets All-in-1 3.5.0* (catégorie `2D assets`). La provenance faisant foi
+> est le fichier `License.txt` **livré dans chaque pack source** (`~/Downloads/Kenney
+> Game Assets All-in-1 3.5.0/2D assets/<Pack>/License.txt`). Les URLs ci-dessous
+> suivent la convention de slug Kenney (`kenney.nl/assets/<slug>`) ; confirmer le slug
+> exact sur kenney.nl en cas de doute. Licence uniforme : **CC0** (domaine public,
+> usage personnel/éducatif/commercial libre, crédit non obligatoire).
 >
-> **Provenance** : Kenney *Game Assets All-in-1 3.5.0* (catégorie `2D assets`),
-> licence **CC0** (domaine public, réutilisation libre y compris commerciale, sans
-> attribution obligatoire). Source hors-repo : `~/Downloads/Kenney Game Assets
-> All-in-1 3.5.0/` = bibliothèque de référence pour piocher davantage plus tard.
-> Seule une sélection curatée (variantes « Default size », sans retina/vector/
-> spritesheets) est versionnée dans `public/assets/` — 1133 fichiers, ~11 MB.
+> **Sélection** : seule une sélection curatée (variantes « Default size », sans
+> retina/vector/spritesheets) est versionnée — **1133 fichiers, ~11 MB**. Les 16 packs
+> complets restent hors-repo dans `~/Downloads/…` comme bibliothèque de référence.
 
 ---
 
-## 1. Sprites du cœur (chargés directement par `game.js`)
+## Sprites du cœur (chargés directement par `game.js`)
 
-`game.js` → `OBJECT_ASSETS` attend ces noms **à plat** dans `assets/`. Chaque fichier
+`game.js` → `OBJECT_ASSETS` attend ces noms **à la racine** `assets/`. Chaque fichier
 est une copie renommée d'un asset Kenney. ⚠️ **À valider visuellement** sur la machine
-de test (rendu non vérifiable sur la machine d'édition) — swap trivial si un sprite ne
-convient pas, la source est dans la bibliothèque.
+de test (rendu non vérifiable sur la machine d'édition).
 
-| Fichier (`public/assets/`) | Rôle in-game | Source Kenney | À valider |
+| Chemin (relatif `public/`) | Rôle | Source Kenney | À valider |
 |---|---|---|---|
-| `truck.png` | Camion joueur | Racing Pack → `Cars/car_red_1.png` | ⚠️ voiture rouge vue de dessus (pas un camion minier — placeholder) |
-| `ore.png` | Minerai collectible | Physics Assets → `Debris/debrisStone_1.png` | ⚠️ caillou gris |
-| `bird.png` | Oiseau (biodiversité / MNHN) | Animal Pack Remastered → `Square/owl.png` | ⚠️ hibou stylisé |
-| `blast.png` | Danger « Blasting Zone » | Explosion Pack → `Ground explosion/groundExplosion05.png` | ⚠️ frame unique d'explosion |
-| `grove.png` | Bosquet / châtaigneraie | Foliage Pack → `Tilesheet/treeLeaves_default.png` | ⚠️ feuillage d'arbre |
-| `spark.png` | Particule / étincelle | Explosion Pack → `Particles/burst.png` | ⚠️ éclat |
+| `assets/truck.png` | Camion joueur | racing-pack → `PNG/Cars/car_red_1.png` | ⚠️ voiture rouge top-down (placeholder) |
+| `assets/ore.png` | Minerai collectible | physics-assets → `PNG/Debris/debrisStone_1.png` | ⚠️ caillou gris |
+| `assets/bird.png` | Oiseau (biodiversité) | animal-pack-remastered → `PNG/Square/owl.png` | ⚠️ hibou stylisé |
+| `assets/blast.png` | Danger « Blasting Zone » | explosion-pack → `PNG/Ground explosion/groundExplosion05.png` | ⚠️ frame unique |
+| `assets/grove.png` | Bosquet / châtaigneraie | foliage-pack → `Tilesheet/treeLeaves_default.png` | ⚠️ feuillage |
+| `assets/spark.png` | Particule / étincelle | explosion-pack → `PNG/Particles/burst.png` | ⚠️ éclat |
 
-## 2. Fonds de biome (`<biome>_far.png` / `<biome>_near.png`)
+---
 
-`game.js` charge un décor optionnel par biome ; en son absence il dessine un
-placeholder (404 console = normal).
+## Assets Kenney (locaux)
 
-| Biome | `_far` | `_near` | État |
-|---|---|---|---|
-| `clay_quarry` | ✅ `clay_quarry_far.png` | ✅ `clay_quarry_near.png` | **Pré-existant** (généré, hors Kenney) |
-| `granite_underground` | ❌ | ❌ | Placeholder dessiné (à produire) |
-| `wetland` | ❌ | ❌ | Placeholder dessiné (voir dossier `wetland/`) |
-| `diatomite` | ❌ | ❌ | Placeholder dessiné (à produire) |
+Chemin racine : `public/assets/kenney/`
 
-## 3. Bibliothèque curatée par usage (`public/assets/<dossier>/`)
+### Pack : Racing Pack (1.0)
+- **URL source** : https://kenney.nl/assets/racing-pack
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/racing-pack/PNG/Cars/` — 50 voitures (`car_red_1.png`, `car_blue_1.png`… 5 couleurs × variantes) → camion joueur + camions adverses colorés
+  - `assets/kenney/racing-pack/PNG/Objects/` — 39 objets de piste (cônes, tonneaux, barrières) → obstacles
+- **Contenu NON utilisé** : `PNG/Characters`, `PNG/Motorcycles`, `PNG/Tiles`, `Spritesheets/`, `Vector/`
 
-Sélection versionnée, disponible pour Sprint 3+ (obstacles, collectibles, décors).
-Tous CC0.
+### Pack : Animal Pack Remastered
+- **URL source** : https://kenney.nl/assets/animal-pack-redux
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/animal-pack-remastered/PNG/Square/` — 30 animaux (`owl.png`, `duck.png`, `parrot.png`, `penguin.png`, `frog.png`, `rabbit.png`…) → sauvetages biodiversité + transformation Green
+- **Contenu NON utilisé** : styles `Round`, `Round (outline)`, `Round without details`, `Square (outline)`, `Spritesheet/`, `Vector/`
 
-| Dossier | Nb | Usage prévu | Source Kenney |
-|---|---|---|---|
-| `vehicles/` | 50 | Camion joueur + camions adverses (couleurs multiples) | Racing Pack → Cars |
-| `vehicles/objects/` | 39 | Cônes, tonneaux, obstacles de piste | Racing Pack → Objects |
-| `animals/` | 30 | Sauvetages bio : `owl`, `duck`, `parrot`, `frog`, `rabbit`… | Animal Pack Remastered → Square |
-| `foliage/` | 62 | Arbres, buissons, plantes (décor biodiversité) | Foliage Pack → Default size |
-| `obstacles/` | 67 | Rochers (`debrisStone_*`) + éléments explosifs (dynamite) | Physics Assets → Debris + Explosive elements |
-| `collectibles/` | 163 | Sacs, caisses, objets miniers (sacs/big bags kaolin) | Generic Items → Colored |
-| `fx/ground_explosion/` | 9 | Séquence explosion au sol (dynamite) | Explosion Pack |
-| `fx/regular_explosion/` | 9 | Séquence explosion aérienne | Explosion Pack |
-| `fx/particles/` | 17 | Débris/étincelles d'explosion | Explosion Pack → Particles |
-| `particles/` | 80 | Poussière (`dirt_*`), fumée derrière le camion (Sprint 3) | Particle Pack → Transparent |
-| `particles/smoke/` | 25 | Fumée noire (séquence) | Smoke Particles → Black smoke |
-| `particles/gas/` | 9 | Gaz/vapeur | Smoke Particles → Gas |
-| `ground/` | 96 | Textures de sol défilant (piste carrière) | Road Textures → Default |
-| `ground/classic/` | 80 | Variantes de sol (style classique) | Road Textures (Classic) |
-| `background/` | 8 | Fonds parallax (forêt, prairie, désert…) | Background Elements Remastered |
-| `industrial/` | 112 | Décor de carrière/mine (machines, tapis) | Platformer Pack Industrial → Default size |
-| `industrial/pixel/` | 116 | Décor industriel style pixel | Pixel Platformer Industrial Expansion |
-| `ui/medals/` | 27 | Badges scoring (base pour le badge Imerys Green) | Medals |
-| `wetland/` | 126 | Décor zone humide (biome `wetland`) : algues, rochers, poissons | Fish Pack → Default |
+### Pack : Foliage Pack (1.0)
+- **URL source** : https://kenney.nl/assets/foliage-pack
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/foliage-pack/PNG/Default size/` — 62 éléments végétaux (`foliagePack_001.png`…) → arbres, buissons, plantes (décor biodiversité)
+  - *(note : `grove.png` racine vient de `Tilesheet/treeLeaves_default.png`, non re-copié ici — dispo dans le pack source)*
+- **Contenu NON utilisé** : `PNG/Retina`, `Spritesheet/`, `Tilesheet/`, `Vector/`
 
-**Total versionné** : 1133 fichiers, ~11 MB.
+### Pack : Explosion Pack (1.0)
+- **URL source** : https://kenney.nl/assets/explosion-pack
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/explosion-pack/PNG/Ground explosion/` — 9 frames (`groundExplosion00-08.png`) → explosion dynamite au sol
+  - `assets/kenney/explosion-pack/PNG/Regular explosion/` — 9 frames → explosion aérienne
+  - `assets/kenney/explosion-pack/PNG/Particles/` — 17 particules (`burst.png`, `greyCloud1.png`…) → étincelles / poussière
+- **Contenu NON utilisé** : `PNG/Pixel explosion`, `PNG/Simple explosion`, `PNG/Sonic explosion`
 
-## 4. Non retenu (dans la bibliothèque `~/Downloads`, pas dans le repo)
+### Pack : Generic Items
+- **URL source** : https://kenney.nl/assets/generic-items
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/generic-items/PNG/Colored/` — 163 objets (`genericItem_color_001.png`…) → sacs, caisses, big bags de kaolin (collectibles miniers)
+- **Contenu NON utilisé** : `PNG/White`, `Spritesheet/`, `Vector/`
 
-Disponible pour piocher plus tard sans re-télécharger : **Ranks Pack** (642 assets de
-rangs), et pour chaque pack ci-dessus les variantes **Retina / Vector / Spritesheet**
-non copiées. Ajouter au repo seulement si un usage précis se présente, puis
-**documenter ici avant de référencer dans le code**.
+### Pack : Physics Assets (1.0)
+- **URL source** : https://kenney.nl/assets/physics-assets
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/physics-assets/PNG/Debris/` — 9 débris de pierre (`debrisStone_1-3.png`…) → rochers / minerai
+  - `assets/kenney/physics-assets/PNG/Explosive elements/` — 58 éléments (`elementExplosive000.png`…) → dynamite / obstacles explosifs
+- **Contenu NON utilisé** : `PNG/Aliens`, `PNG/Backgrounds`, `PNG/Glass elements`, `PNG/Metal elements`, et autres matériaux
+
+### Pack : Particle Pack (1.1)
+- **URL source** : https://kenney.nl/assets/particle-pack
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/particle-pack/PNG (Transparent)/` — 80 particules (`dirt_01.png`, `smoke_01.png`, `circle_01.png`…) → nuages de poussière derrière le camion (Sprint 3)
+- **Contenu NON utilisé** : `PNG (Black background)`, `.../Rotated`, `Unity samples/`
+
+### Pack : Smoke Particles (1.0)
+- **URL source** : https://kenney.nl/assets/smoke-particles
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/smoke-particles/PNG/Black smoke/` — 25 frames (`blackSmoke00.png`…) → fumée / poussière
+  - `assets/kenney/smoke-particles/PNG/Gas/` — 9 frames → gaz / vapeur
+- **Contenu NON utilisé** : `PNG/Explosion`, `PNG/Flash`, `PNG/White smoke`, `Spritesheets/`
+
+### Pack : Platformer Pack Industrial (1.0)
+- **URL source** : https://kenney.nl/assets/platformer-pack-industrial
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/platformer-pack-industrial/PNG/Default size/` — 112 tuiles (`platformIndustrial_001.png`…) → décor de carrière / mine (machines, tapis)
+- **Contenu NON utilisé** : `PNG/Retina`, `Spritesheet/`, `Tilesheet/`
+
+### Pack : Pixel Platformer: Industrial Expansion (1.0)
+- **URL source** : https://kenney.nl/assets/pixel-platformer-industrial-expansion
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/pixel-platformer-industrial-expansion/PNG/` — 116 tuiles pixel → décor industriel style pixel
+- **Contenu NON utilisé** : variantes retina / spritesheet
+
+### Pack : Road Textures
+- **URL source** : https://kenney.nl/assets/road-textures
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/road-textures/PNG/Default/` — 96 textures (`roadTexture_01.png`…) → sol défilant de la piste (carrière)
+- **Contenu NON utilisé** : `PNG/Retina`, `Tilesheet/`, `Vector/`
+
+### Pack : Road Textures Classic (1.0)
+- **URL source** : https://kenney.nl/assets/road-textures
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/road-textures-classic/PNG/` — 80 textures de sol (style classique)
+- **Contenu NON utilisé** : variantes retina / tilesheet / vector
+
+### Pack : Medals (1.1)
+- **URL source** : https://kenney.nl/assets/medals
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/medals/PNG/` — 27 médailles (`flatshadow_medal1.png`…) → base pour le badge Imerys Green / UI scoring
+- **Contenu NON utilisé** : `Spritesheet/`, `Vector/`
+
+### Pack : Background Elements Remastered (1.0)
+- **URL source** : https://kenney.nl/assets/background-elements-redux
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/background-elements-remastered/Backgrounds/` — 8 fonds (`backgroundColorForest.png`, `backgroundColorGrass.png`, `backgroundDesert.png`…) → fonds parallax par biome
+- **Contenu NON utilisé** : `PNG/Default` (Elements), `PNG/Retina`, `Spritesheet/`
+
+### Pack : Fish Pack
+- **URL source** : https://kenney.nl/assets/fish-pack
+- **Licence** : CC0
+- **Contenu utilisable** :
+  - `assets/kenney/fish-pack/PNG/Default/` — 126 éléments (`background_seaweed_a.png`, `background_rock_a.png`, poissons…) → décor du biome `wetland`
+- **Contenu NON utilisé** : `PNG/Double`, `Spritesheet/`, `Vector/`
+
+---
+
+## Assets générés (Imagen 3)
+
+> ⚠️ **Déviation assumée du template** : ces fonds sont à la **racine** `public/assets/`
+> (et non `public/assets/generated/`) car `game.js` les charge à `assets/<biome>_far.png`
+> / `assets/<biome>_near.png`. Ne pas déplacer sans modifier `game.js`.
+
+- `assets/clay_quarry_far.png` — fond lointain carrière de kaolin Clérac (généré)
+- `assets/clay_quarry_near.png` — fond proche carrière de kaolin Clérac (généré)
+
+---
+
+## Assets à générer plus tard (placeholder)
+
+Planifiés, non encore produits (`game.js` dessine un placeholder en leur absence — 404
+console = normal) :
+
+- `assets/granite_underground_far.png` / `_near.png` — biome mine souterraine (Beauvoir)
+- `assets/wetland_far.png` / `_near.png` — biome zone humide (Provins) — piocher dans `kenney/fish-pack/`
+- `assets/diatomite_far.png` / `_near.png` — biome diatomite (Foufouilloux)
+- `assets/badge_imerys_green.svg` — badge arbre doré (score > 5000 ET Green > 30), voir GAMEPLAY_SPEC
+- `assets/generated/background_clerac_tile.png` — tuile de fond à découper via Pillow (Sprint 3)
+
+---
+
+## Convention de nommage
+
+Tous les chemins référencés dans `level_config.json` doivent être **RELATIFS depuis la
+racine `public/`** :
+- Sprites cœur : `assets/truck.png`, `assets/ore.png`, `assets/bird.png`, `assets/blast.png`, `assets/grove.png`, `assets/spark.png`
+- Fonds de biome : `assets/<biome>_far.png`, `assets/<biome>_near.png`
+- Bibliothèque Kenney : `assets/kenney/<slug>/PNG/<sous-dossier>/<fichier>.png`
+  (ex. `assets/kenney/racing-pack/PNG/Cars/car_blue_1.png`)
+
+**Ne jamais compléter un fichier « manquant » par intuition.** Avant de référencer un
+asset, vérifier qu'il existe sur le disque ET qu'il est listé ci-dessus. Pour ajouter un
+asset de la bibliothèque source, le copier d'abord dans `public/assets/kenney/<slug>/`
+puis l'inscrire dans ce manifeste.
 
 ---
 
@@ -83,4 +198,4 @@ non copiées. Ajouter au repo seulement si un usage précis se présente, puis
 
 | Date | Action |
 |------|--------|
-| 5 juil. 2026 | Création. Import curaté Kenney All-in-1 3.5.0 (16 packs, sélection Default-size) + mapping des 6 sprites cœur. |
+| 5 juil. 2026 | Création. Import curaté Kenney All-in-1 3.5.0 (16 packs, sélection Default-size, 1133 fichiers). Layout par pack `kenney/<slug>/`. Mapping des 6 sprites cœur. |
