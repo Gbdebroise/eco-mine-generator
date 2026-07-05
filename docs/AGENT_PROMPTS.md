@@ -123,6 +123,38 @@ Si une info est absente du fichier pour ce site, mets "N/A" - ne l'invente pas.
   AUCUNE valeur » et le fallback `"N/A"` restent. On raccourcit sans inventer.
 - **Non modifié** : lecture obligatoire (ÉTAPE 1), `output_key`, tools, modèle.
 
+### Modification web — Sprint 2 (étapes 2.5 + 2.6)
+
+Incrément appliqué le 5 juil. **par-dessus** le « Prompt corrigé ». Le Researcher a
+désormais 3 MCP (`fs_read`, `web_search` Tavily, `web_fetch`) — voir `ARCHITECTURE.md`.
+
+**Changements** :
+- **En-tête** : rôle élargi à « EXTRACTEUR … qui ENRICHIT via le web » (l'anti-refus
+  est préservé : « accepte-la toujours »).
+- **ÉTAPE 2** : extraction supplémentaire du champ `headline_fact` (phrase complète
+  du « Headline fact: », NON condensée — sert de base à `end_recap` côté Coder).
+- **Nouvelle ÉTAPE 3 — enrichissement web** : (a) `tavily-search` avec requête
+  `"<site> Imerys carriere biodiversite especes protegees faune flore"`, (b) `fetch`
+  sur 1-2 URLs, (c) extraction de 4-8 espèces réelles en labels courts anglais, (d)
+  fallback strict sur les espèces du fichier CSR si le web échoue — **jamais**
+  d'espèce inventée.
+- **ÉTAPE 4 (ex-3)** : le JSON de sortie gagne 2 clés : `headline_fact` (string) et
+  `biodiversity_species` (array de 4-8 labels).
+
+**Justification** :
+- Répond au constat que `imerys_csr_data.txt` est trop pauvre en biodiversité
+  (seulement oiseaux migrateurs + châtaigniers/chauves-souris pour Clérac).
+- **Preuve MCP renforcée** : un run génère maintenant des `tool_use` Tavily + Fetch
+  en plus du `read_text_file` — démonstration multi-MCP pour le jury.
+- **Garde-fou anti-hallucination maintenu** : la clause (d) interdit toute espèce non
+  sourcée (web ou fichier).
+- **Non modifié** : `output_key="csr_summary"`, modèle `gemini-2.5-flash`, format sans
+  fences, lecture CSR obligatoire.
+
+⚠️ **Non encore validé en playground** (étape 2.4 en attente) : les noms exacts des
+outils Tavily/Fetch. Le prompt les désigne de façon générique (« l'outil de recherche
+Tavily disponible ») pour rester robuste au nom réel exposé par `tavily-mcp`.
+
 ---
 
 ## Coder
@@ -296,6 +328,75 @@ ce schéma :
   pas de champ sans raison » pour éviter que le Coder invente des clés parasites.
 - **Non modifié** : reste du prompt (fence-tolerance, labels courts, biomes, schéma UI).
 
+### Modification 3 — Champs narratifs, Sprint 2 (étapes 2.7 + 2.8)
+
+Incrément appliqué le 5 juil. **par-dessus** les modifications 1 et 2. Le Coder lit
+les 2 nouvelles clés du Researcher (`headline_fact`, `biodiversity_species`) et produit
+3 nouveaux textes narratifs dans le config.
+
+**Changements** :
+- **Clés lues** : ajout de `headline_fact` et `biodiversity_species` à la liste des
+  clés du `{csr_summary}`. `biodiversity_species` est recopié TEL QUEL (pas d'invention).
+- **Schéma de sortie étendu** : ajout de `biodiversity_species` (top-level) et de 3
+  clés dans `ui_strings` :
+  - `intro_story` — 2-4 phrases, 2e personne, contextualisées site/minerai/danger.
+  - `eco_facts` — 3-6 faits courts (≤ 80 car.), un par espèce, affichés en jeu à
+    chaque collecte éco.
+  - `end_recap` — 1-2 phrases dérivées de `headline_fact`, affichées à l'écran de fin.
+- **Message de confirmation** : le Coder précise désormais le nombre d'espèces intégrées.
+
+**Contrat avec `game.js`** (moteur hand-coded, voir `public/game.js`) :
+- `intro_story` → nouvelle `StoryScene` (beat narratif avant le menu).
+- `eco_facts` → bannière 2s en haut de l'écran, rotation à chaque collecte d'oiseau.
+- `end_recap` + `biodiversity_species` → écran `GAME OVER` (récap + espèces défendues).
+- `DEFAULT_CONFIG` de `game.js` porte des valeurs Clérac pour toutes ces clés → le jeu
+  reste jouable même sans sortie d'agent (merge tolérant).
+
+**Justification** :
+- Enrichissement narratif (Sprint 2) : le jeu raconte le site réel au lieu d'afficher
+  des labels bruts. Contenu 100% généré par l'agent = argument capstone.
+- **Rôles préservés** (règle CLAUDE.md #5) : le Coder ne produit qu'un `level_config.json`
+  (data + textes), `game.js` reste le moteur fixe qui le consomme.
+- **Non modifié** : biomes, `spawn_rates`, `write_file`, CONTRAINTE D'ASSETS, modèle,
+  tools, interdiction markdown en sortie.
+
+### Modification 4 — Mécaniques gameplay, Sprint 3 (étapes 3.x)
+
+Incrément appliqué **par-dessus** les modifications 1-3. Le Coder connaît désormais les
+5 nouvelles sections de config qui pilotent le gameplay et reçoit des plages de valeurs.
+
+**Changements** :
+- **Schéma de sortie étendu** de 5 sections top-level : `obstacles.dynamite`,
+  `zones.water`, `entities.enemy_trucks`, `difficulty`, `thresholds.green_badge`
+  (valeurs par défaut recopiées du schéma — contrat complet : `docs/level_config_schema.md`).
+- **Nouveau bloc « REGLES SUR LES MECANIQUES »** : liste des plages recommandées pour
+  chaque champ + interdiction absolue de mettre un `spawn_weight` à 0 ou de vider une
+  section (sinon le jeu perd la mécanique). Consigne d'adapter au thème du site en
+  restant dans les plages.
+
+**Contrat avec `game.js`** (moteur hand-coded, `public/game.js` v4) :
+- `obstacles.dynamite` → obstacle à malus (score + green), explosion + camera shake,
+  NON fatal (distinct de `danger_obstacle`/`blast` qui reste un game over).
+- `zones.water` → bande de ralentissement (overlay bleu + éclaboussures) tant que le
+  camion la traverse.
+- `entities.enemy_trucks` → sprite mobile (vitesse propre), game over au contact.
+- `difficulty` → consommé par `src/difficulty.js` (`getDifficulty`), pilote vitesse et
+  multiplicateur de spawn de TOUTES les entités selon la distance.
+- `thresholds.green_badge` → seuils du badge Imerys Green (écran de célébration dédié
+  `BadgeScene` + persistance dans le leaderboard `localStorage`).
+- `DEFAULT_CONFIG` de `game.js` porte des défauts pour ces 5 sections → un config Sprint 2
+  sans elles boote à l'identique (rétro-compat garantie par le merge).
+
+**Justification** :
+- **Config-driven préservé** (règle CLAUDE.md #5) : les mécaniques sont paramétrées par
+  data, pas par du code Phaser généré. `game.js` reste le moteur stable.
+- **Anti-appauvrissement** : le garde-fou « jamais de `spawn_weight` à 0 » empêche l'agent
+  de produire un niveau vidé de ses mécaniques (mode d'échec observé sur les LLM).
+- **Plages explicites** : bornent la créativité de l'agent à des valeurs jouables sans
+  brider l'adaptation au thème du site.
+- **Non modifié** : Researcher (inchangé), CONTRAINTE D'ASSETS, biomes, champs narratifs,
+  modèle, tools, format sans fences. Le **Reviewer** reste prévu pour le Sprint 4.
+
 ---
 
 ## Historique des versions
@@ -308,3 +409,6 @@ ce schéma :
 | 5 juil. 2026 | researcher | Rôle EXTRACTEUR (anti-refus), labels courts (anti-verbosité), format sans fences |
 | 5 juil. 2026 | coder | Tolérance aux fences en entrée, non-ré-expansion des labels |
 | 5 juil. 2026 | coder | Modification 2 : CONTRAINTE D'ASSETS (lecture manifeste via MCP, `missing_assets`, chemins `assets/`) |
+| 5 juil. 2026 | researcher | Sprint 2 : enrichissement web (Tavily+Fetch), `headline_fact` + `biodiversity_species` |
+| 5 juil. 2026 | coder | Sprint 2 : champs narratifs `intro_story` / `eco_facts` / `end_recap` + passthrough espèces |
+| 5 juil. 2026 | coder | Sprint 3 : sections gameplay `obstacles`/`zones`/`entities`/`difficulty`/`thresholds` + plages + garde-fou anti-zéro |
