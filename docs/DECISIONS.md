@@ -55,3 +55,42 @@ toucher aux modèles (`gemini-2.5-flash` / `gemini-2.5-pro`), aux tools MCP, à
   lisibles à l'écran, cohérents avec le `DEFAULT_CONFIG` de `game.js`.
 - Le Researcher n'émet jamais de message de refus.
 - `level_config.json` régénéré cohérent avec la version committée le 5 juil.
+
+---
+
+## 2026-07-05 — Contrainte d'assets du Coder via manifeste MCP
+
+**Contexte** : Problème récurrent d'hallucination de chemins d'assets (le Coder
+référençait des fichiers absents du disque — cf. règle CLAUDE.md #1). On vient de
+constituer `docs/ASSET_MANIFEST.md` (inventaire réel, layout `public/assets/kenney/`).
+Il faut que le Coder s'y contraigne au moment de générer `level_config.json`.
+
+**Décision** : Ajouter une section `CONTRAINTE D'ASSETS` au prompt du Coder qui lui
+impose de **lire `docs/ASSET_MANIFEST.md` via `read_text_file` (MCP filesystem)** avant
+d'écrire le config, de n'utiliser QUE les chemins listés, de signaler tout asset absent
+dans un champ `missing_assets` (au lieu d'inventer), et de vérifier que chaque chemin
+commence par `assets/`.
+
+**Pourquoi le manifeste dans `docs/` et pas en dur dans le prompt** :
+- Source de vérité **unique et versionnée** : un seul endroit à mettre à jour quand on
+  ajoute/retire un asset ; le prompt ne dérive jamais du disque.
+- **Auditabilité** : le manifeste est relu par un humain et (bientôt) par le Reviewer ;
+  un prompt gonflé de centaines de chemins n'est ni lisible ni diffable proprement.
+
+**Pourquoi le Coder LIT le manifeste via MCP (au lieu d'injection au prompt-time)** :
+- **Preuve MCP pour le jury** : la lecture génère un `tool_use` `read_text_file` visible
+  dans la debug view du playground — démonstration exigée par le capstone.
+- **Fraîcheur** : le Coder lit toujours la version courante du fichier sur disque, pas
+  une copie figée au moment du build du prompt.
+- **Cohérence architecturale** : même canal MCP que le Researcher (`app/imerys_csr_data.txt`).
+
+**Alternative rejetée** : Lister les assets directement dans l'instruction system du
+Coder → **rejeté** car (a) ça alourdit massivement le prompt (1133 fichiers), (b) ce
+n'est pas maintenable (double source de vérité prompt/disque, dérive garantie), (c) on
+perd la preuve MCP (aucun `tool_use` généré).
+
+**Impact attendu** : le Coder produit un `tool_use read_text_file('docs/ASSET_MANIFEST.md')`
+avant `write_file`, ne référence aucun chemin hors manifeste, et déclare les manques via
+`missing_assets`. Note : le schéma actuel du config ne porte encore aucun chemin d'asset
+(`game.js` charge via `OBJECT_ASSETS`), donc la contrainte est surtout un garde-fou +
+preuve MCP tant que le config ne référence pas d'assets. À valider dans la debug view.

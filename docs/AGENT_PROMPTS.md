@@ -248,6 +248,54 @@ en précisant le biome choisi.
 - **Non modifié** : liste des biomes, schéma de sortie, `write_file`, UI en anglais,
   interdiction de markdown en sortie, modèle, tools.
 
+### Modification 2 — Contrainte assets (anti-hallucination de chemins)
+
+Incrément appliqué le 5 juil. **par-dessus** le « Prompt corrigé » ci-dessus. Insertion
+d'une section `CONTRAINTE D'ASSETS` juste avant l'instruction `write_file`.
+
+**Avant** (le bloc biome enchaînait directement sur l'écriture) :
+```
+Si rien ne correspond, utilise "clay_quarry".
+
+Ecris via write_file dans 'public/level_config.json' un JSON suivant EXACTEMENT
+ce schéma :
+```
+
+**Après** :
+```
+Si rien ne correspond, utilise "clay_quarry".
+
+CONTRAINTE D'ASSETS
+Avant d'ecrire le config, appelle read_text_file sur 'docs/ASSET_MANIFEST.md'
+pour connaitre la liste des assets autorises.
+Regles absolues :
+1. N'utilise QUE les chemins d'asset listes dans le manifeste.
+2. Si un asset dont tu as besoin manque, ne l'invente PAS : signale-le dans un
+   tableau de premier niveau "missing_assets": ["nom", ...] au lieu d'inventer
+   un chemin. N'ajoute ce champ QUE s'il y a reellement un asset manquant.
+3. Verifie que chaque chemin d'asset commence bien par 'assets/' (relatif a public/).
+Le schema ci-dessous n'exige aucun chemin d'asset ; n'en ajoute pas sans raison.
+Cette contrainte s'applique a tout chemin que tu inclurais.
+
+Ecris via write_file dans 'public/level_config.json' un JSON suivant EXACTEMENT
+ce schéma :
+```
+
+**Justification** :
+- **Anti-hallucination de chemins** : force le Coder à ne référencer que des assets
+  réellement présents (règle CLAUDE.md #1), en s'appuyant sur `docs/ASSET_MANIFEST.md`
+  comme source de vérité unique.
+- **Preuve MCP pour le jury** : la lecture du manifeste via `read_text_file` produit un
+  `tool_use` visible dans la debug view du playground — démonstration concrète que le
+  Coder consomme le MCP filesystem.
+- **Signal `missing_assets` plutôt qu'invention** : quand un asset manque, le Coder le
+  déclare explicitement au lieu de fabriquer un chemin → exploitable par le futur
+  Reviewer (Sprint 4) pour rejeter/annoter le config.
+- **Cadrage anti-bruit** : le schéma actuel ne contient aucun chemin d'asset (`game.js`
+  charge les sprites via `OBJECT_ASSETS` en dur). La contrainte précise donc « n'ajoute
+  pas de champ sans raison » pour éviter que le Coder invente des clés parasites.
+- **Non modifié** : reste du prompt (fence-tolerance, labels courts, biomes, schéma UI).
+
 ---
 
 ## Historique des versions
@@ -259,3 +307,4 @@ en précisant le biome choisi.
 | 4 juil. 2026 | coder | Recopie verbatim, anti-généralisation, schéma aligné game.js |
 | 5 juil. 2026 | researcher | Rôle EXTRACTEUR (anti-refus), labels courts (anti-verbosité), format sans fences |
 | 5 juil. 2026 | coder | Tolérance aux fences en entrée, non-ré-expansion des labels |
+| 5 juil. 2026 | coder | Modification 2 : CONTRAINTE D'ASSETS (lecture manifeste via MCP, `missing_assets`, chemins `assets/`) |

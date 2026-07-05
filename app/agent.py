@@ -118,6 +118,18 @@ coder_agent = LlmAgent(
       - "diatomite"            -> diatomite / sols clairs filtrants
     Si rien ne correspond, utilise "clay_quarry".
 
+    CONTRAINTE D'ASSETS
+    Avant d'ecrire le config, appelle read_text_file sur 'docs/ASSET_MANIFEST.md'
+    pour connaitre la liste des assets autorises.
+    Regles absolues :
+    1. N'utilise QUE les chemins d'asset listes dans le manifeste.
+    2. Si un asset dont tu as besoin manque, ne l'invente PAS : signale-le dans un
+       tableau de premier niveau "missing_assets": ["nom", ...] au lieu d'inventer
+       un chemin. N'ajoute ce champ QUE s'il y a reellement un asset manquant.
+    3. Verifie que chaque chemin d'asset commence bien par 'assets/' (relatif a public/).
+    Le schema ci-dessous n'exige aucun chemin d'asset ; n'en ajoute pas sans raison.
+    Cette contrainte s'applique a tout chemin que tu inclurais.
+
     Ecris via write_file dans 'public/level_config.json' un JSON suivant EXACTEMENT
     ce schéma :
     {
