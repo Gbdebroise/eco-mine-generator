@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-07-06 (background) — Fond carrière : tuile seamless au lieu d'une vignette tilée
+
+**Contexte** : Au run, le background défilait mal (coutures, cadrage bancal) alors que la
+photo était bonne (« sol de carrière »). Inspection : `clay_quarry_far.png` (480×256) et
+`clay_quarry_near.png` (480×384) sont des **vignettes encadrées** (scène complète avec
+bordure rocheuse / bords déchirés transparents), mais `game.js` les passe dans un
+`tileSprite` qui **répète** la texture pour le scroll infini → les bordures se répètent en
+bandes qui défilent. Inadéquation asset ↔ technique de rendu, pas un bug d'agent (aucun
+agent ne touche `game.js` ni les assets — rappel règle #5 : le pipeline ne produit que
+`level_config.json`).
+
+**Décision** : Régénérer la **couche visible** (`_near`, opaque, dessinée au-dessus du
+`_far`) en une vraie **tuile de sol raccordable verticalement** :
+crop de l'intérieur opaque (boîte 417×346, marge de sécurité) → composite sur teinte terre
+→ resize largeur 480 → **feather-wrap** vertical (fondu haut↔bas, f=76) via System.Drawing
+en PowerShell. Résultat 480×322, opaque, couture mesurée à 24.5 delta RGB vs 19.8 de
+variation interne (≈ imperceptible). Fichier écrit sur `clay_quarry_near.png` →
+**aucune modification de `game.js`** (il charge déjà `assets/<biome>_near.png`). Le `_far`
+aérien devient totalement masqué (near opaque) : conservé mais non tilé.
+
+**Alternative rejetée** :
+- **Recadrage à la volée dans `game.js`** (frame interne du `tileSprite`) → rejeté :
+  couture centrale subsistante (image pas vraiment raccordable) et logique de rendu
+  alourdie ; corriger l'asset une fois est plus propre et testable.
+- **Mirror-tile** (empiler crop + miroir vertical) → rejeté : raccord parfait garanti mais
+  symétrie mécanique visible sur les cailloux. Le feather-wrap donne un rendu organique.
+- **Backdrop statique** (far aérien étiré, plein écran) → rejeté : perd la sensation de
+  vitesse d'un endless runner (le sol ne défile plus).
+
+**Impact attendu** : sol de carrière qui défile proprement, sans bande ni bord déchiré.
+Reproductible pour les autres biomes : même recette de génération de tuile à appliquer.
+
+---
+
 ## 2026-07-06 — Sprint 4 : fix Reviewer 400 « Duplicate function declaration » + garde-fou
 
 **Contexte** : Au lancement du playground, le pipeline démarre (researcher + coder OK)

@@ -168,8 +168,14 @@ Chemin racine : `public/assets/kenney/`
 > (et non `public/assets/generated/`) car `game.js` les charge à `assets/<biome>_far.png`
 > / `assets/<biome>_near.png`. Ne pas déplacer sans modifier `game.js`.
 
-- `assets/clay_quarry_far.png` — fond lointain carrière de kaolin Clérac (généré)
-- `assets/clay_quarry_near.png` — fond proche carrière de kaolin Clérac (généré)
+- `assets/clay_quarry_far.png` — fond lointain carrière de kaolin Clérac (généré). Vue
+  aérienne encadrée : actuellement **masquée** derrière `_near` (opaque), conservée pour
+  usage futur. NE PAS tiler telle quelle (bordures → coutures).
+- `assets/clay_quarry_near.png` — **tuile de sol raccordable verticalement** (480×322,
+  opaque, seamless) dérivée de la photo générée d'origine par crop intérieur + raccord
+  par fondu (feather-wrap, System.Drawing). C'est la couche VISIBLE qui défile dans
+  `game.js` (`tileSprite`). L'original encadré (bords déchirés) reste dans l'historique
+  git. Voir `docs/DECISIONS.md § 2026-07-06 (background)`.
 
 ---
 
