@@ -121,7 +121,7 @@ Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1`
 
 ## 8. Reproducibility
 
-Prerequisites (WSL 2): `uv`, `agents-cli`, Node 24, MCP servers reachable via `npx`, and a `TAVILY_API_KEY` in `.env`.
+Prerequisites (WSL 2): `uv`, `agents-cli`, Node 24, MCP servers reachable via `npx`. The demo pipeline is filesystem-only — no network needed. (`TAVILY_API_KEY` in `.env` is only required if you re-enable the Researcher's web enrichment off-VPN.)
 
 ```bash
 # 1. install
