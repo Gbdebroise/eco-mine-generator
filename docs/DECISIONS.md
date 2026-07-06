@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-06 (UX fin de partie) — Retrait du prompt pseudo, rappel biodiversité, blast en panneau danger
+
+**Contexte** : Retours de jouabilité après un run satisfaisant. (1) Le `window.prompt`
+de saisie du pseudo en game over gênait pour un score qui n'est de toute façon pas
+persisté côté joueur. (2) L'obstacle `blast` (« Blasting Zone », fatal), dessiné en étoile
+d'explosion rouge, était perçu comme une **ancienne dynamite** dupliquée à côté du fagot
+de dynamite (malus) — deux visuels rouges explosifs concurrents et confus. (3) Question
+sur la condition d'arrêt : le jeu est un endless runner (fin uniquement sur collision
+fatale `blast` / `enemy_truck`), comportement conservé.
+
+**Décision** :
+- Supprimer le `window.prompt` dans `GameScene.gameOver` → pseudo par défaut `PLAYER`,
+  leaderboard localStorage conservé. À la place, l'écran de fin **met en avant les espèces
+  protégées de Clérac** (`biodiversity_species`), déjà transmises via `lastResult.species`.
+- Redessiner le placeholder `blast` en **panneau danger triangulaire jaune/noir** +
+  pictogramme explosion, visuellement distinct du fagot rouge de dynamite. Obstacle
+  toujours **fatal** — gameplay inchangé.
+- Endless runner confirmé (pas d'arrêt par score) — aucune modif.
+
+**Alternative rejetée** :
+- **Garder le prompt mais persister le pseudo proprement** → rejeté : sur-ingénierie pour
+  un leaderboard purement local/démo.
+- **Supprimer l'obstacle blast** → rejeté par l'utilisateur : c'est le `danger_obstacle`
+  central du niveau ; seul le visuel posait problème, pas la mécanique.
+
+**Impact attendu** : fin de partie sans friction et pédagogique (rappel biodiversité),
+deux dangers lisibles et distincts (panneau danger jaune vs fagot rouge). `Leaderboard.sanitizePseudo`
+devient inutilisé mais reste exporté (pas de régression).
+
+---
+
 ## 2026-07-06 (sprites) — Objets rendus par code : suppression des PNG Kenney parasites
 
 **Contexte** : Régression de design signalée au run — le camion joueur (jaune attendu)

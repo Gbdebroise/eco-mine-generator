@@ -163,16 +163,19 @@ function drawObjectPlaceholder(scene, key) {
       g.lineStyle(2, 0xe67e22, 1); g.strokeCircle(17, 22, 4);
       g.generateTexture(key, 34, 28); break;
     case 'blast':
-      g.fillStyle(0xe24b4a, 1); g.fillCircle(23, 23, 21);
-      g.fillStyle(0xef8b2c, 1); g.fillCircle(23, 23, 13);
-      g.fillStyle(0xf9d423, 1); g.fillCircle(23, 23, 6);
+      // "Blasting Zone" (fatal) : panneau danger triangulaire jaune/noir,
+      // volontairement distinct du fagot ROUGE de dynamite (malus).
+      g.fillStyle(0x1a1a1a, 1); g.fillTriangle(23, 2, 44, 42, 2, 42);   // bord noir
+      g.fillStyle(0xf1c40f, 1); g.fillTriangle(23, 9, 39, 39, 7, 39);   // fond jaune
+      // pictogramme explosion (étoile rouge à cœur sombre) centré dans le triangle
       g.fillStyle(0xe24b4a, 1);
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2;
-        g.fillTriangle(23 + Math.cos(a) * 21, 23 + Math.sin(a) * 21,
-          23 + Math.cos(a + 0.25) * 14, 23 + Math.sin(a + 0.25) * 14,
-          23 + Math.cos(a - 0.25) * 14, 23 + Math.sin(a - 0.25) * 14);
+        g.fillTriangle(23 + Math.cos(a) * 10, 29 + Math.sin(a) * 8,
+          23 + Math.cos(a + 0.3) * 5, 29 + Math.sin(a + 0.3) * 4,
+          23 + Math.cos(a - 0.3) * 5, 29 + Math.sin(a - 0.3) * 4);
       }
+      g.fillStyle(0x1a1a1a, 1); g.fillCircle(23, 29, 3);
       g.generateTexture(key, 46, 46); break;
     case 'dynamite':
       // Fagot de bâtons rouges + mèche : lisible et distinct du "blast".
@@ -524,12 +527,10 @@ class GameScene extends Phaser.Scene {
     const score = this.totalScore();
     const badge = score >= th.min_score && this.greenPoints >= th.min_green_points;
 
-    // Pseudo (max 12, sanitize dans le module) + persistance leaderboard.
-    let pseudo = 'ANON';
-    try {
-      const raw = window.prompt('Game over! Enter your pseudo (max 12 chars):', '');
-      pseudo = Leaderboard.sanitizePseudo(raw);
-    } catch (e) { pseudo = 'ANON'; }
+    // Pas de saisie de pseudo (non persisté côté joueur) : on rappelle plutôt
+    // les espèces protégées de Clérac sur l'écran de fin. Leaderboard local
+    // conservé avec un pseudo par défaut.
+    const pseudo = 'PLAYER';
     const entry = {
       pseudo, score, green_points: this.greenPoints, badge,
       date_iso: new Date().toISOString()
@@ -615,10 +616,12 @@ class GameOverScene extends Phaser.Scene {
     const recapColor = res.ecoScore >= 0 ? '#2ecc71' : '#e67e22';
     this.add.text(W / 2, 280, recap,
       { fontFamily: 'Arial', fontSize: '15px', color: recapColor, align: 'center', wordWrap: { width: 400 }, lineSpacing: 4 }).setOrigin(0.5);
-    const species = (res.species || []).join('  ·  ');
+    const species = (res.species || []).join('   ·   ');
     if (species) {
-      this.add.text(W / 2, 366, 'Biodiversity you defended:\n' + species,
-        { fontFamily: 'Arial', fontSize: '13px', color: '#ffffff', align: 'center', wordWrap: { width: 400 }, lineSpacing: 4 }).setOrigin(0.5);
+      this.add.text(W / 2, 358, '🦋  Protected species at ' + cfg.site_name,
+        { fontFamily: 'Arial Black', fontSize: '14px', color: '#7ef7b0' }).setOrigin(0.5);
+      this.add.text(W / 2, 388, species,
+        { fontFamily: 'Arial', fontSize: '14px', color: '#ffffff', align: 'center', wordWrap: { width: 400 }, lineSpacing: 5 }).setOrigin(0.5);
     }
 
     const retry = this.add.text(W / 2, 470, '▶  SPACE to retry',

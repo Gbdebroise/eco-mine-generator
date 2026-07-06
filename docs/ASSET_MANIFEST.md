@@ -41,7 +41,7 @@ s'il réapparaît — pattern conservé pour un futur set IA).
 | `enemy_truck` | Camion adverse (game over) | camion **rouge** 44×68, cabine inversée |
 | `mineral` | Minerai collectible | gemme gris clair 34×34 |
 | `bird` | Oiseau (biodiversité) | petit oiseau bleu 34×28 (bat des ailes) |
-| `blast` | Danger « Blasting Zone » | étoile d'explosion rouge/orange/jaune 46×46 |
+| `blast` | Danger « Blasting Zone » (fatal) | panneau danger triangulaire jaune/noir + picto explosion 46×46 |
 | `dynamite` | Dynamite (obstacle malus) | fagot de bâtons rouges + mèche + étincelle 44×40 |
 | `grove` | Bosquet / châtaigneraie | petit arbre (tronc + feuillage) 46×46 |
 | `spark` | Particule / étincelle | point blanc 12×12 (scalé par le système de particules) |
