@@ -20,28 +20,36 @@ comme une hallucination et le `level_config.json` généré sera rejeté par le 
 
 ---
 
-## Sprites du cœur (chargés directement par `game.js`)
+## Sprites du cœur — rendus par CODE dans `game.js`
 
-`game.js` → `OBJECT_ASSETS` attend ces noms **à la racine** `assets/`. Chaque fichier
-est une copie renommée d'un asset Kenney. ⚠️ **À valider visuellement** sur la machine
-de test (rendu non vérifiable sur la machine d'édition).
+> **Décision 2026-07-06 (sprites)** : les sprites d'objets sont désormais **dessinés par
+> `game.js`** (`drawObjectPlaceholder`), pas chargés depuis des fichiers. L'import Kenney
+> `25ee8e7` avait posé des PNG génériques et surdimensionnés (voiture orange sur le camion
+> jaune, hibou 128px sur l'oiseau, tilesheet 1024px de feuilles sur l'arbre…) qui
+> **écrasaient** les sprites vectoriels calibrés d'origine et n'étaient pas redimensionnés
+> (`group.create` = taille native → « blocs trop gros »). Les 6 PNG parasites ont été
+> supprimés → `game.js` retombe sur ses placeholders code (fallback lignes 234-236). Voir
+> `docs/DECISIONS.md § 2026-07-06 (sprites)`.
 
-| Chemin (relatif `public/`) | Rôle | Source Kenney | À valider |
-|---|---|---|---|
-| `assets/truck.png` | Camion joueur | racing-pack → `PNG/Cars/car_red_1.png` | ⚠️ voiture rouge top-down (placeholder) |
-| `assets/ore.png` | Minerai collectible | physics-assets → `PNG/Debris/debrisStone_1.png` | ⚠️ caillou gris |
-| `assets/bird.png` | Oiseau (biodiversité) | animal-pack-remastered → `PNG/Square/owl.png` | ⚠️ hibou stylisé |
-| `assets/blast.png` | Danger « Blasting Zone » | explosion-pack → `PNG/Ground explosion/groundExplosion05.png` | ⚠️ frame unique |
-| `assets/grove.png` | Bosquet / châtaigneraie | foliage-pack → `Tilesheet/treeLeaves_default.png` | ⚠️ feuillage |
-| `assets/spark.png` | Particule / étincelle | explosion-pack → `PNG/Particles/burst.png` | ⚠️ éclat |
-| `assets/dynamite.png` | Dynamite (obstacle malus, Sprint 3) | physics-assets → `PNG/Explosive elements/elementExplosive*.png` | ⚠️ **placeholder code** (fichier non copié) |
-| `assets/enemy_truck.png` | Camion adverse (game over, Sprint 3) | racing-pack → `PNG/Cars/car_red_1.png` | ⚠️ **placeholder code** (fichier non copié) |
+`game.js` → `OBJECT_ASSETS` déclare ces clés. Chaque sprite est **dessiné par code** tant
+qu'aucun fichier de même nom n'existe à la racine `assets/` (le fallback recharge un PNG
+s'il réapparaît — pattern conservé pour un futur set IA).
 
-> **Sprint 3** : `dynamite`, `enemy_truck` (et le badge, plus bas) suivent le pattern
-> établi de `game.js` : le sprite est chargé s'il existe à la racine `assets/`, sinon
-> `game.js` **dessine un placeholder par code** (404 console = normal). Les sources
-> Kenney ci-dessus sont dans la bibliothèque `public/assets/kenney/` mais **pas encore
-> copiées/renommées** à la racine — à faire sur la machine de test pour un rendu final.
+| Clé | Rôle | Rendu actuel (code, calibré) |
+|---|---|---|
+| `truck` | Camion joueur | camion-benne **jaune** 44×68 |
+| `enemy_truck` | Camion adverse (game over) | camion **rouge** 44×68, cabine inversée |
+| `mineral` | Minerai collectible | gemme gris clair 34×34 |
+| `bird` | Oiseau (biodiversité) | petit oiseau bleu 34×28 (bat des ailes) |
+| `blast` | Danger « Blasting Zone » | étoile d'explosion rouge/orange/jaune 46×46 |
+| `dynamite` | Dynamite (obstacle malus) | fagot de bâtons rouges + mèche + étincelle 44×40 |
+| `grove` | Bosquet / châtaigneraie | petit arbre (tronc + feuillage) 46×46 |
+| `spark` | Particule / étincelle | point blanc 12×12 (scalé par le système de particules) |
+
+> **Set IA futur (optionnel)** : pour un rendu au niveau des fonds Imagen 3, générer un set
+> cohérent (camion-benne jaune, oiseau migrateur, châtaignier, big-bag de kaolin, dynamite)
+> en PNG transparents ~96px et les déposer à la racine `assets/<clé>.png` : le fallback les
+> chargera automatiquement à la place du code. Aucune modif de `game.js` nécessaire.
 
 ---
 

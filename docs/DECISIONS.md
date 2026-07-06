@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-07-06 (sprites) — Objets rendus par code : suppression des PNG Kenney parasites
+
+**Contexte** : Régression de design signalée au run — le camion joueur (jaune attendu)
+apparaissait en **voiture orange**, l'oiseau en **hibou**, l'arbre en **blobs abstraits**,
+les blocs de minerai **trop gros**, l'explosion peu lisible. Enquête : `game.js` dessine
+depuis toujours des sprites vectoriels calibrés et thématiques via `drawObjectPlaceholder`
+(camion jaune 44×68, oiseau bleu 34×28, arbre 46×46, étoile d'explosion, fagot de
+dynamite…). Le commit `25ee8e7` (« curated Kenney selection ») a copié des PNG génériques
+aux mêmes noms → ils **écrasaient** les sprites code (fallback lignes 234-236 : le fichier
+a priorité). Pire, `group.create(x,y,key)` (ligne 355) instancie à la **taille native** du
+PNG, sans `setDisplaySize` → tailles réelles mesurées : bird 128×128, grove **1024×192**
+(tout le tilesheet de feuilles en un sprite = les « blobs »), truck 71×131, ore 64×56,
+spark 171×175 (particules géantes). Aucun camion de chantier n'existe dans toute la biblio
+Kenney locale (`find truck/excavator/bulldozer` → vide) : le « camion jaune » regretté
+**était** le placeholder code masqué par le PNG voiture.
+
+**Décision** : Supprimer les 6 PNG d'objets parasites (`truck`, `bird`, `grove`, `blast`,
+`ore`, `spark`) → `game.js` retombe automatiquement sur ses placeholders code, calibrés et
+cohérents. Corrige d'un coup l'image ET la taille de chaque objet. **Aucune modif de
+`game.js`** (fallback déjà en place). Réversible (PNG conservés dans l'historique git).
+
+**Alternative rejetée** :
+- **Redimensionner les PNG Kenney dans `game.js`** (`setDisplaySize`) → rejeté : corrige la
+  taille mais garde la voiture/le hibou/les blobs que l'utilisateur rejette.
+- **Curer de meilleurs Kenney** (arbre foliage Default-size, dynamite physics-assets) →
+  reporté : envisageable pour arbre/dynamite, mais aucun bon camion/oiseau Kenney ; les
+  sprites code forment déjà un set homogène. Option ouverte si besoin.
+- **Générer un set IA** (comme les fonds Imagen 3) → reporté machine de test : meilleur
+  rendu mais non générable sur la machine d'édition. Le fallback fichier→code permet de
+  déposer plus tard `assets/<clé>.png` sans toucher au code.
+
+**Impact attendu** : camion jaune, petit oiseau bleu, arbre, minerai à la bonne taille,
+explosion lisible, dynamite en fagot — set vectoriel cohérent, plus de sprites hors sujet.
+
+---
+
 ## 2026-07-06 (background) — Fond carrière : tuile seamless au lieu d'une vignette tilée
 
 **Contexte** : Au run, le background défilait mal (coutures, cadrage bancal) alors que la
