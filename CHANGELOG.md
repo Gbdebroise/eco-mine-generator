@@ -42,9 +42,21 @@ remplace pas le Coder, il le **contrôle**. Architecture **config-driven** prés
 - Root `WRITEUP.md` / `VIDEO_SCRIPT.md` → **stubs pointeurs** vers `docs/` (contenu migré
   et actualisé 3-agents ; anciennes versions 2-agents en historique git).
 
+### Changed (6 juil. — suite)
+- **Reviewer** : pivot Tavily → dataset local `docs/clerac_species_reference.json` (VPN
+  bloque Tavily) ; `tools=[fs_read, fs_write]`. Correction : rollier/guêpier/lézard ocellé
+  sont méditerranéens, hors Clérac (`especes_incorrectes`).
+- **Researcher (démo)** : web MCP désactivé → biodiversité **depuis le CSR uniquement**,
+  `tools=[fs_read]`. Pipeline 100 % filesystem. Angle writeup : « reliability over web
+  enrichment during the demo phase due to network constraints ».
+- Configs vitrine (`level_config.json`, `…/sprint3.json`) : espèces alignées sur le dataset
+  validé (otter, mink, kingfisher, nightjar, natterjack, Dartford warbler, noctule bat).
+- Nouveaux docs : `clerac_species_reference.json`, `CLERAC_RESEARCH_REPORT.md`,
+  `TAVILY_VPN_INCIDENT.md` ; fixture `level_config.broken.json` + `tests/manual/run_reviewer.py`.
+
 ### Not changed (volontairement)
-- **Researcher** et **Coder** : prompts, modèles, tools, `output_key` inchangés.
-- Structure de state (`{csr_summary}`) — le Reviewer la **consomme**, ne la modifie pas.
+- **Coder** : prompt, modèle, tools, contrat de sortie inchangés.
+- Structure de state (`{csr_summary}`) — Reviewer la **consomme**, ne la modifie pas.
 - Modèles (`gemini-2.5-flash` / `gemini-2.5-pro`), moteur `game.js`.
 
 ### Déviation assumée

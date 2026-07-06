@@ -50,7 +50,7 @@ Ne JAMAIS copier via clé USB : `.venv/`, `__pycache__/`, `.env`, `.pytest_cache
 - Génération d'un `level_config.json` par le Coder consommé par un `game.js` Phaser 3 hand-coded
 - Génération d'une image de fond de Clérac via Imagen 3
 - MCP filesystem (`@modelcontextprotocol/server-filesystem`) branché avec filtrage des tools (Researcher = read only, Coder = write only)
-- **Web MCP branchés au Researcher (Sprint 2, étape 2.3, commit `95f6b8c`)** : `tavily-mcp` (recherche web, clé `TAVILY_API_KEY`) + `@modelcontextprotocol/server-fetch` (lecture URL), déclarés dans `app/agent.py` (`tools=[fs_read, web_search, web_fetch]`). Le Coder reste filesystem-only. ⚠️ Connectivité **pas encore testée** en playground (étape 2.4).
+- **Web MCP (Tavily + Fetch) — DÉSACTIVÉS pour la démo (Sprint 4, 6 juil.)** : branchés au Researcher au Sprint 2 (commit `95f6b8c`), mais le VPN Imerys bloque Tavily (TLS, cf. `TAVILY_VPN_INCIDENT.md`). Pour la démo, `researcher_agent.tools=[fs_read]` → biodiversité **depuis le CSR uniquement**. Les toolsets `web_search`/`web_fetch` restent définis (non branchés) pour ré-enrôlement hors VPN. Pipeline **100 % filesystem** sur les 3 agents. Voir `DECISIONS.md` §2026-07-06.
 
 ### Ce qui ne fonctionne pas (problèmes identifiés lors du test du 3 juillet)
 1. **Message d'erreur du Researcher** : *« Je ne suis pas en mesure de générer des jeux »* → ✅ **résolu** (Sprint 1, commit `9539133`). Cause réelle : le MCP filesystem ne résolvait pas le chemin du CSR → researcher sans données → refus. Fix : chemin `app/imerys_csr_data.txt` + lecture obligatoire. Les captures baseline du 5 juil. montrent un run complet sans erreur.
@@ -105,6 +105,7 @@ Reviewer [✅ CRÉÉ Sprint 4] (relit le config, valide 3 axes, écrit un RAPPOR
 | 5 juillet | **Reviewer en mode RAPPORT** (pas de boucle), 3ᵉ `sub_agent` du `SequentialAgent` | Plus sûr à démontrer + aucun changement d'orchestration ; boucle = travail futur (décision verrouillée avec l'utilisateur) |
 | 5 juillet | **Writeup + vidéo en EN**, docs racine migrés vers `docs/` | Jury international ; anti-drift (une seule source par doc) |
 | 6 juillet | **Pivot Tavily → dataset Clérac local (Filesystem MCP) pour le Reviewer** | Blocage TLS du VPN Imerys (inspection d'entreprise, cf. `TAVILY_VPN_INCIDENT.md`) + précision scientifique renforcée (sources CNPN/MRAe/DREAL vs Tavily on-the-fly). Voir `DECISIONS.md` |
+| 6 juillet | **Web MCP désactivé aussi sur le Researcher (démo)** → CSR-only | Même blocage VPN + pipeline 100 % local/déterministe pour le tournage. Angle : « reliability over web enrichment during the demo phase ». Supersede le maintien de Tavily sur le Researcher. Voir `DECISIONS.md` §2026-07-06 |
 | 3 juillet | **Ajout d'un web MCP au Researcher** | Enrichir la biodiversité au-delà des fichiers locaux |
 | 3 juillet | **Playground UI comme preuve MCP pour le jury** | Debug view montre chaque tool_use / tool_result |
 | 3 juillet | **Documentation structurée dans le repo** | 8 fichiers markdown : voir section suivante |

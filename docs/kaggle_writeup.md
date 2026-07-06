@@ -33,8 +33,7 @@ Why multi-agent is the right shape here, not decoration: the failure modes are *
             │
    1. researcher_agent   gemini-2.5-flash
         │  MCP: filesystem(read)  → app/imerys_csr_data.txt   (the site's CSR facts)
-        │  MCP: tavily(search)    → real regional species
-        │  MCP: fetch(url)        → read a discovered source
+        │  (web MCP disabled for the demo — CSR-only, see §7)
         │  output_key="csr_summary"  →  session.state
             │
    2. coder_agent        gemini-2.5-pro
@@ -56,18 +55,17 @@ Why multi-agent is the right shape here, not decoration: the failure modes are *
 | MCP server | Used by | What it proves in the playground debug view |
 |---|---|---|
 | `@modelcontextprotocol/server-filesystem` (read view) | Researcher, Coder, Reviewer | `read_text_file` on the CSR, the asset manifest, the generated config, the schema, and the **curated Clérac species dataset** (Reviewer) |
-| `tavily-mcp` | Researcher | web-search `tool_use` — the Researcher enriches biodiversity beyond the local file |
-| `@modelcontextprotocol/server-fetch` | Researcher | reads the content of a discovered URL |
 | `@modelcontextprotocol/server-filesystem` (write view) | Coder, Reviewer | `write_file` on `level_config.json` (Coder) and the review report (Reviewer) |
+| `tavily-mcp` / `server-fetch` | *(disabled for the demo)* | web enrichment of biodiversity — wired in Sprint 2, **switched off for the demo phase** (network constraints); trivially re-enabled off-VPN |
 
-> **Reviewer validation is dataset-driven, not web-driven.** On the test machine Tavily is blocked by the corporate VPN's TLS inspection (see `docs/TAVILY_VPN_INCIDENT.md`), and — more importantly — species validation should rest on an authoritative, auditable source, not a live web guess. So the Reviewer checks `biodiversity_species` against `docs/clerac_species_reference.json`, a curated dataset built from official sources (CNPN, MRAe Nouvelle-Aquitaine, DREAL Natura 2000, INPN): 51 validated species plus an explicit `especes_incorrectes` list. That read is itself a visible MCP call.
+> **The whole demo pipeline is filesystem-only — deliberately.** We wired web MCP (Tavily + Fetch) into the Researcher in Sprint 2, but the corporate VPN's TLS inspection blocks Tavily on the test machine (see `docs/TAVILY_VPN_INCIDENT.md`). Rather than fight the network on camera, **we prioritized reliability over web enrichment during the demo phase due to network constraints**: the Researcher falls back to the CSR file alone for biodiversity, and the whole run is 100 % local and reproducible. Validation is *stronger* than a live web guess anyway — the Reviewer checks `biodiversity_species` against `docs/clerac_species_reference.json`, a curated dataset built from official sources (CNPN, MRAe Nouvelle-Aquitaine, DREAL Natura 2000, INPN): 51 validated species plus an explicit `especes_incorrectes` list. That read is itself a visible MCP call.
 
 **Key design decision (carried from Sprints 1–3):** the agents never emit game code. They produce a ~50-line constrained `level_config.json`; the Phaser engine is fixed and hand-tested. This collapses the LLM error surface from hundreds of lines of fragile JavaScript to structured data with documented ranges (`docs/level_config_schema.md`). The Reviewer is the third leg of that same reliability strategy: *validate the data, since the data is all the agent controls.*
 
 ## 4. The pipeline in action (what the video shows)
 
 1. **Ask for a site** — `Generate a game for Clerac` in the playground.
-2. **Researcher** reads `imerys_csr_data.txt` (visible `read_text_file`), then calls **Tavily** and **Fetch** to widen biodiversity beyond the file (otter, kingfisher, natterjack toad…). Output: a clean JSON `csr_summary` in session state.
+2. **Researcher** reads `imerys_csr_data.txt` (visible `read_text_file`) and extracts the site's facts and biodiversity **from the CSR alone** (web enrichment is off for the demo). Output: a clean JSON `csr_summary` in session state.
 3. **Coder** reads the asset manifest (visible `read_text_file`), writes `public/level_config.json` (visible `write_file`) — labels, biome, five gameplay sections, and the narrative strings.
 4. **Reviewer** reads that config back off disk (visible `read_text_file`), reads the curated Clérac dataset (`read_text_file` on `docs/clerac_species_reference.json`), checks the config on three axes, and writes `docs/reviews/review_clerac.md` (visible `write_file`) with a global verdict.
 5. **Play it** — the fixed engine renders the top-down runner: collect Chamotte, band migratory birds, dodge dynamite and rival trucks, slow through the protected wetlands, chase the Imerys Green badge.
@@ -106,7 +104,7 @@ Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1`
 ## 6. Results
 
 > *[To be filled after the WSL test pass — see `docs/HANDOFF.md` § Validation.]*
-> - Number of MCP `tool_use` events observed in one full run (target: filesystem read ×N incl. the Clérac dataset, Researcher Tavily/fetch where the network allows — blocked by the corporate VPN on the test machine, see `docs/TAVILY_VPN_INCIDENT.md` — and write ×2).
+> - Number of MCP `tool_use` events observed in one full run (target, demo config = filesystem-only: read ×N incl. the CSR and the Clérac dataset, write ×2). Web MCP is off for the demo (see §7 / `docs/TAVILY_VPN_INCIDENT.md`).
 > - Example generated `level_config.json` (Clérac) — link/inline.
 > - Example generated `docs/reviews/review_clerac.md` — link/inline.
 > - Reviewer catching an intentionally broken config (off-site species + out-of-range values) — before/after.
@@ -115,7 +113,8 @@ Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1`
 ## 7. Limits & learnings
 
 - **Reviewer is report-only, not a correction loop.** A feedback loop back to the Coder would be more impressive but riskier to demo and harder to bound (infinite-iteration risk). We chose robustness for the capstone deadline; the loop is documented as future work.
-- **Species validation rests on a curated static dataset, not live web search.** We originally planned a Tavily fact-check, but the corporate VPN's TLS inspection blocks it on the test machine (`docs/TAVILY_VPN_INCIDENT.md`) — and an authoritative, auditable reference is honestly the better choice for a validator. The trade-off: `docs/clerac_species_reference.json` must be maintained by hand, and today only Clérac is covered in that depth (the other three sites fall back to looser CSR-based checks).
+- **Web enrichment is off for the demo — a reliability trade-off.** The Researcher can widen biodiversity via Tavily + Fetch (wired in Sprint 2), but the corporate VPN's TLS inspection blocks Tavily on the test machine (`docs/TAVILY_VPN_INCIDENT.md`). **We prioritized reliability over web enrichment during the demo phase due to network constraints**: the Researcher falls back to the CSR file alone, so the pipeline is 100 % local and reproducible on camera. The cost is thinner biodiversity in a fresh run (only the species the CSR names); the web path is a one-line re-enable off-VPN.
+- **Species validation rests on a curated static dataset, not live web search.** The Reviewer checks against `docs/clerac_species_reference.json` — an authoritative, auditable reference (CNPN/MRAe/DREAL/INPN) that is honestly the better choice for a validator than a live web guess. The trade-off: the dataset is maintained by hand, and today only Clérac is covered in that depth (the other three sites fall back to looser CSR-based checks).
 - **No reliable clock inside the agent**, so reviews are named `review_<site>.md` (deterministic, meaningful) rather than by timestamp — a small, deliberate deviation from the original spec.
 - **The data is real but not exhaustively re-verified against the latest CSR** — the source file says so explicitly. This is an educational tool *inspired by* real initiatives, not an official Imerys communication.
 - **What worked:** the "fixed engine + constrained config + independent validator" pattern. Almost every failure we hit across four sprints was an *agent producing bad data*, and moving validation into its own agent with its own tools (rather than more prompt rules) is what made the output trustworthy.
@@ -131,7 +130,7 @@ agents-cli install
 # 2. run the full pipeline interactively (debug view on localhost:8080)
 agents-cli playground
 #    then type:  Generate a game for Clerac
-#    watch: researcher (read + Tavily + Fetch) → coder (write) → reviewer (read + write)
+#    watch: researcher (read CSR) → coder (write) → reviewer (read config + dataset, write report)
 
 # 3. play the generated game (no agent needed)
 cd public && python -m http.server 8000

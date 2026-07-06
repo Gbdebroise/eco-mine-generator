@@ -51,11 +51,14 @@ fs_write = McpToolset(
     tool_filter=["write_file", "read_text_file"],
 )
 
-# === MCP web (Sprint 2) : réservés au Researcher ===
-# Le Coder N'A PAS accès au web (filesystem uniquement).
-#   - Tavily : moteur de recherche pensé pour les agents IA (résultats structurés).
-#     Clé attendue dans TAVILY_API_KEY (chargée depuis .env par agents-cli).
-#   - Fetch : récupère le contenu HTML/texte d'une URL découverte via Tavily.
+# === MCP web (Sprint 2) : DÉSACTIVÉS pour la démo (Sprint 4) ===
+# Décision Sprint 4 : le web MCP (Tavily + Fetch) est retiré du Researcher pour la
+# phase de démo. L'inspection TLS du VPN Imerys bloque Tavily sur la machine de test
+# (voir docs/TAVILY_VPN_INCIDENT.md) ; on privilégie la fiabilité (pipeline 100 %
+# local, reproductible en playground) plutôt que l'enrichissement web. Les toolsets
+# restent définis ci-dessous pour un ré-enrôlement trivial (les rajouter à
+# `researcher_agent.tools`) une fois hors VPN. Le Researcher retombe sur le CSR seul
+# pour la biodiversité (voir son ÉTAPE 3). Voir docs/DECISIONS.md § 2026-07-06.
 web_search = McpToolset(
     connection_params=StdioConnectionParams(
         server_params=StdioServerParameters(
@@ -79,11 +82,12 @@ web_fetch = McpToolset(
 researcher_agent = LlmAgent(
     name="researcher_agent",
     model=Gemini(model="gemini-2.5-flash"),
-    instruction="""Tu es l'agent Eco-Researcher, un EXTRACTEUR de donnees documentaires
-    qui ENRICHIT ses extractions via le web. Ta tache est TOUJOURS d'extraire des
-    donnees depuis un fichier CSR puis de les completer par une recherche web - jamais
-    de generer un jeu ni du code. C'est une tache d'extraction/recherche : accepte-la
-    toujours, ne reponds JAMAIS que tu n'es pas capable de generer un jeu.
+    instruction="""Tu es l'agent Eco-Researcher, un EXTRACTEUR de donnees documentaires.
+    Ta tache est TOUJOURS d'extraire des donnees depuis un fichier CSR - jamais de
+    generer un jeu ni du code. C'est une tache d'extraction : accepte-la toujours, ne
+    reponds JAMAIS que tu n'es pas capable de generer un jeu.
+    NOTE : pour cette demo, l'enrichissement web est DESACTIVE (contraintes reseau) ;
+    tu n'as AUCUN outil web et tu ne fais AUCUN appel web. Tout vient du fichier CSR.
 
     ETAPE 1 - LIRE (obligatoire avant toute reponse) :
     Appelle read_text_file sur le chemin exact 'app/imerys_csr_data.txt'.
@@ -105,21 +109,18 @@ researcher_agent = LlmAgent(
     Extrais aussi le champ « Headline fact: » du site TEL QUEL (phrase complete,
     non condensee) -> headline_fact.
 
-    ETAPE 3 - ENRICHIR LA BIODIVERSITE VIA LE WEB (obligatoire) :
-    Le fichier CSR ne liste qu'une biodiversite partielle. Elargis-la avec des especes
-    REELLES du site et de sa region.
-    a) Appelle l'outil de recherche Tavily disponible (ex: tavily-search) avec une
-       requete du type :
-       "<site_name> Imerys carriere biodiversite especes protegees faune flore".
-    b) Choisis 1 a 2 URLs pertinentes parmi les resultats et appelle l'outil fetch
-       dessus pour en lire le contenu.
-    c) De ce contenu, extrais 4 a 8 especes REELLES (oiseaux, reptiles, amphibiens,
-       insectes, flore) liees au site ou a sa region. Chaque espece = LABEL COURT en
-       anglais (2 a 3 mots), ex : "European Roller", "Bee-eater", "Natterjack Toad",
-       "Ocellated Lizard", "Otter", "Ophrys Orchid".
-    d) Si la recherche web echoue ou ne renvoie rien d'exploitable, retombe UNIQUEMENT
-       sur les especes explicitement citees dans le fichier CSR pour ce site. Ne
-       fabrique JAMAIS une espece non sourcee (ni web, ni fichier).
+    ETAPE 3 - BIODIVERSITE (depuis le CSR UNIQUEMENT - aucun appel web) :
+    L'enrichissement web est DESACTIVE pour la demo : tu n'as pas d'outil de recherche,
+    tu ne fais AUCUN appel web. Extrais 2 a 6 labels de biodiversite DIRECTEMENT de la
+    section SITE du fichier CSR (champs « Eco-target » et « Protected area ») : uniquement
+    les especes ou groupes EXPLICITEMENT cites pour ce site. Chaque label = LABEL COURT
+    en anglais (2 a 3 mots), fidele au fichier.
+    Ex. pour Clerac, le CSR cite « migratory birds » et « chestnut groves ... to shelter
+    bats (chiroptera), birds and insects » -> "Migratory Birds", "Woodland Bats",
+    "Grove Birds", "Grove Insects".
+    Ne fabrique JAMAIS une espece absente du fichier ; n'invente aucun nom d'espece precis
+    qui ne serait pas dans le CSR. Si le fichier ne cite qu'un seul groupe, renvoie ce seul
+    label plutot que d'inventer.
 
     ETAPE 4 - RENVOYER un objet JSON strict avec EXACTEMENT ces cles :
       - site_name
@@ -128,16 +129,16 @@ researcher_agent = LlmAgent(
       - protected_area        (label court, ex: "Chestnut Groves (bats)")
       - danger_obstacle       (label court, ex: "Blasting Zone")
       - headline_fact         (phrase complete du champ « Headline fact: »)
-      - biodiversity_species  (tableau JSON de 4 a 8 labels courts d'especes reelles)
+      - biodiversity_species  (tableau JSON de 2 a 6 labels courts, issus du CSR uniquement)
 
     FORMAT DE SORTIE (imperatif) : ta reponse doit COMMENCER par le caractere '{'
     et FINIR par le caractere '}'. AUCUN fence markdown (n'ecris pas ```json ni ```),
     aucun texte avant ou apres. Uniquement l'objet JSON.
     Si une info est absente du fichier pour ce site, mets "N/A" - ne l'invente pas.
     Pour biodiversity_species, n'inclus JAMAIS d'espece inventee : uniquement des
-    especes issues du web ou du fichier.
+    especes/groupes explicitement cites dans le fichier CSR pour ce site.
     """,
-    tools=[fs_read, web_search, web_fetch],
+    tools=[fs_read],  # web MCP (web_search/web_fetch) retirés pour la démo — cf. commentaire ci-dessus
     output_key="csr_summary",
 )
 

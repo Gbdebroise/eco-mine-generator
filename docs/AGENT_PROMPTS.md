@@ -155,6 +155,29 @@ désormais 3 MCP (`fs_read`, `web_search` Tavily, `web_fetch`) — voir `ARCHITE
 outils Tavily/Fetch. Le prompt les désigne de façon générique (« l'outil de recherche
 Tavily disponible ») pour rester robuste au nom réel exposé par `tavily-mcp`.
 
+### Modification web — Sprint 4 (démo) : DÉSACTIVATION du web
+
+Incrément appliqué le 6 juil. **par-dessus** la modification web du Sprint 2. Le web MCP
+est **retiré du Researcher pour la démo** : `tools=[fs_read]` (Tavily + Fetch enlevés).
+
+**Changements** :
+- **En-tête** : retour à « EXTRACTEUR de donnees documentaires » (sans « qui ENRICHIT via
+  le web ») + note explicite « enrichissement web DESACTIVE, aucun appel web ».
+- **ÉTAPE 3** : « ENRICHIR via le web » (Tavily→Fetch) remplacée par « BIODIVERSITE depuis
+  le CSR UNIQUEMENT » — extraire 2 à 6 labels courts des seuls champs `Eco-target` /
+  `Protected area` de la section SITE, sans invention ni web.
+- **ÉTAPE 4** : `biodiversity_species` = « 2 à 6 labels, issus du CSR uniquement » (au lieu
+  de « 4 à 8 espèces web/CSR »).
+- **`app/agent.py`** : les toolsets `web_search`/`web_fetch` restent **définis** (commentés
+  « désactivés démo ») mais ne sont branchés sur aucun agent → ré-enrôlement trivial hors VPN.
+
+**Justification** : l'inspection TLS du VPN Imerys bloque Tavily sur la machine de test
+(`docs/TAVILY_VPN_INCIDENT.md`). On privilégie la fiabilité (pipeline 100 % local,
+reproductible en playground) sur l'enrichissement web pour la phase de démo. Conséquence
+assumée : biodiversité plus pauvre en run frais (limitée aux espèces citées dans le CSR).
+Voir `DECISIONS.md` §2026-07-06. **Non modifié** : lecture CSR obligatoire, labels courts,
+format sans fences, `output_key`, modèle `gemini-2.5-flash`.
+
 ---
 
 ## Coder
@@ -492,4 +515,6 @@ lit aussi `docs/clerac_species_reference.json`). Voir `DECISIONS.md` § 2026-07-
 | 5 juil. 2026 | coder | Sprint 2 : champs narratifs `intro_story` / `eco_facts` / `end_recap` + passthrough espèces |
 | 5 juil. 2026 | coder | Sprint 3 : sections gameplay `obstacles`/`zones`/`entities`/`difficulty`/`thresholds` + plages + garde-fou anti-zéro |
 | 5 juil. 2026 | reviewer | Sprint 4 : création du 3ᵉ agent (mode rapport), validation 3 axes, écrit `docs/reviews/review_<site>.md`, fact-check Tavily conditionnel |
+| 6 juil. 2026 | reviewer | Sprint 4 : pivot Tavily → dataset local `clerac_species_reference.json` (VPN), `tools=[fs_read, fs_write]` |
+| 6 juil. 2026 | researcher | Sprint 4 (démo) : web MCP désactivé, biodiversité depuis le CSR uniquement, `tools=[fs_read]` |
 | 6 juil. 2026 | reviewer | Sprint 4 pivot : Tavily retiré (blocage VPN Imerys), Axe 2 consomme `docs/clerac_species_reference.json` via Filesystem MCP. Tools = `[fs_read, fs_write]`. À synchroniser dans `app/agent.py` |

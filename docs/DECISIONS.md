@@ -378,3 +378,47 @@ démo jury, et masquerait le problème #2 (espèces incorrectes).
   (contrat Axe 2 change : lecture du JSON au lieu d'appel web)
 - `tavily-mcp` reste branché au **Researcher** (fallback CSR déjà en place si
   le blocage réseau se reproduit là aussi — à valider en playground)
+
+---
+
+## 2026-07-06 — Sprint 4 (démo) : désactivation du web MCP aussi sur le Researcher
+
+**Contexte** : la décision précédente (pivot Tavily → dataset) gardait `tavily-mcp` +
+`fetch-mcp` branchés au **Researcher**, en pariant sur un fallback CSR si le VPN bloquait
+là aussi. Or le même blocage TLS s'applique au Researcher (il tourne sur la même machine
+de test sous VPN Imerys), et un `tool_use` Tavily qui crashe en plein run de démo est un
+risque visuel inacceptable devant le jury. On veut un pipeline **entièrement déterministe
+et local** pour le tournage.
+
+**Décision** : retirer le web MCP du Researcher pour la démo. `researcher_agent.tools`
+passe de `[fs_read, web_search, web_fetch]` à `[fs_read]`. Le Researcher extrait la
+biodiversité **du CSR uniquement** (champs `Eco-target` / `Protected area` de la section
+SITE), 2 à 6 labels courts, sans invention ni web. Les toolsets `web_search` / `web_fetch`
+restent **définis** dans `app/agent.py` (commentés « désactivés démo ») mais branchés sur
+aucun agent → ré-enrôlement en une ligne hors VPN. **Supersede** le point « `tavily-mcp`
+reste branché au Researcher » de la décision ci-dessus.
+
+**Angle writeup** (validé avec l'utilisateur) : *« we prioritized reliability over web
+enrichment during the demo phase due to network constraints »*. Le pipeline devient
+100 % filesystem sur les 3 agents — robuste, reproductible, aucune dépendance réseau.
+
+**Conséquence assumée** : biodiversité plus pauvre en run frais (limitée aux espèces/
+groupes cités dans le CSR Clérac : oiseaux migrateurs, chauves-souris, oiseaux et insectes
+des châtaigneraies). Le `level_config.json` committé (vitrine, 7 espèces validées issues du
+dataset) reste la référence de démo pour le jeu ; un run playground CSR-only produira une
+liste plus courte — c'est le compromis fiabilité assumé.
+
+**Alternative rejetée — garder Tavily sur le Researcher avec fallback** : le fallback ne
+protège pas du bruit visuel (tentative d'appel + erreur loggée) pendant le tournage.
+**Rejeté** pour la démo ; réactivable hors VPN.
+
+**Alternative rejetée — faire lire le dataset `clerac_species_reference.json` au Researcher**
+(enrichissement local sans web) : donnerait une biodiversité riche ET locale, mais mélange
+les rôles (le dataset est l'outil de **validation** du Reviewer, pas une source de génération)
+et court-circuite l'intérêt du Reviewer (il validerait des espèces copiées de sa propre
+référence). **Rejeté** — on garde la séparation Researcher (extraction CSR) / Reviewer
+(validation dataset). Piste possible post-jury si on veut enrichir sans web.
+
+**Impact attendu** (à valider en playground) : run complet sans aucun `tool_use` web ;
+Researcher = `read_text_file` (CSR) seul ; `csr_summary.biodiversity_species` = 2-6 labels
+issus du CSR ; pipeline reproductible sous VPN.
