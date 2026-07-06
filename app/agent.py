@@ -30,26 +30,41 @@ os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 # Pointe vers la RACINE du projet (parent de eco_mine_generator/)
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# === MCP : un seul serveur filesystem, deux vues filtrées ===
-fs_read = McpToolset(
-    connection_params=StdioConnectionParams(
-        server_params=StdioServerParameters(
-            command="npx",
-            args=["-y", "@modelcontextprotocol/server-filesystem", PROJECT_DIR],
-        ),
-    ),
-    tool_filter=["read_text_file", "read_file", "list_directory"],
-)
+# === MCP : un seul serveur filesystem, plusieurs vues filtrées ===
+# Registre {id(toolset): tool_filter} rempli par _fs_toolset(), consommé par le
+# garde-fou _assert_unique_tool_names() en bas du module. On enregistre le filtre
+# nous-mêmes plutôt que de lire un interne d'ADK (pas d'API publique stable pour ça).
+_TOOLSET_FILTERS: dict[int, list[str]] = {}
 
-fs_write = McpToolset(
-    connection_params=StdioConnectionParams(
-        server_params=StdioServerParameters(
-            command="npx",
-            args=["-y", "@modelcontextprotocol/server-filesystem", PROJECT_DIR],
+
+def _fs_toolset(tool_filter: list[str]) -> McpToolset:
+    """Crée une vue filtrée du serveur filesystem et mémorise son filtre.
+
+    Args:
+        tool_filter: liste blanche des noms de tools MCP exposés par cette vue.
+
+    Returns:
+        Le McpToolset prêt à être attaché à un agent.
+    """
+    ts = McpToolset(
+        connection_params=StdioConnectionParams(
+            server_params=StdioServerParameters(
+                command="npx",
+                args=["-y", "@modelcontextprotocol/server-filesystem", PROJECT_DIR],
+            ),
         ),
-    ),
-    tool_filter=["write_file", "read_text_file"],
-)
+        tool_filter=tool_filter,
+    )
+    _TOOLSET_FILTERS[id(ts)] = tool_filter
+    return ts
+
+
+fs_read = _fs_toolset(["read_text_file", "read_file", "list_directory"])
+fs_write = _fs_toolset(["write_file", "read_text_file"])
+# Vue read+write pour le Reviewer : UN SEUL toolset (donc UNE SEULE déclaration
+# de chaque fonction). Empiler fs_read + fs_write sur un même agent déclare
+# read_text_file deux fois -> Gemini 400 "Duplicate function declaration found".
+fs_review = _fs_toolset(["read_text_file", "read_file", "list_directory", "write_file"])
 
 # === MCP web (Sprint 2) : DÉSACTIVÉS pour la démo (Sprint 4) ===
 # Décision Sprint 4 : le web MCP (Tavily + Fetch) est retiré du Researcher pour la
@@ -392,13 +407,48 @@ reviewer_agent = LlmAgent(
     ETAPE 4 - CONFIRMER a l'utilisateur : indique le verdict global et le chemin du
     rapport ecrit. N'ecris JAMAIS le rapport avant d'avoir relu le config (ETAPE 1).
     """,
-    tools=[fs_read, fs_write],
+    tools=[fs_review],  # un seul toolset combiné (voir fs_review) — évite le doublon read_text_file
 )
+
+# === Garde-fou : aucun nom de tool déclaré deux fois sur un même agent ===
+# Gemini rejette (400 INVALID_ARGUMENT "Duplicate function declaration found") toute
+# requête où deux function declarations partagent un nom. Ça arrive quand on empile sur
+# un agent deux McpToolset dont les tool_filter se recoupent (ex. read_text_file présent
+# dans fs_read ET fs_write). Cette erreur, sinon, ne se manifeste qu'au 1er appel LLM de
+# l'agent fautif (donc tard dans un SequentialAgent) et via une stack trace opaque.
+# On la transforme ici en ValueError immédiate et lisible, au chargement du module —
+# avant tout appel réseau. Limite : ne couvre que les toolsets créés par _fs_toolset()
+# (donc à tool_filter connu) ; un McpToolset sans filtre expose des noms résolus au
+# runtime et n'est pas vérifiable statiquement.
+def _assert_unique_tool_names(agent: LlmAgent) -> None:
+    """Vérifie qu'aucun nom de tool n'est déclaré par 2 toolsets du même agent.
+
+    Args:
+        agent: l'agent LLM dont on inspecte la liste `tools`.
+
+    Raises:
+        ValueError: si un nom de tool apparaît dans le filtre de 2 toolsets.
+    """
+    seen: dict[str, McpToolset] = {}
+    for toolset in agent.tools:
+        for name in _TOOLSET_FILTERS.get(id(toolset), []):
+            if name in seen:
+                raise ValueError(
+                    f"Agent '{agent.name}' : le tool '{name}' est déclaré par deux "
+                    f"toolsets. Gemini rejette les déclarations dupliquées (400 "
+                    f"INVALID_ARGUMENT). Fusionne-les en un seul McpToolset couvrant "
+                    f"tous les tools nécessaires (cf. fs_review)."
+                )
+            seen[name] = toolset
+
 
 # === Pipeline séquentiel : recherche -> code -> review ===
 root_agent = SequentialAgent(
     name="eco_mine_pipeline",
     sub_agents=[researcher_agent, coder_agent, reviewer_agent],
 )
+
+for _sub_agent in root_agent.sub_agents:
+    _assert_unique_tool_names(_sub_agent)
 
 app = App(root_agent=root_agent, name="app")

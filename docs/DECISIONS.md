@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-07-06 — Sprint 4 : fix Reviewer 400 « Duplicate function declaration » + garde-fou
+
+**Contexte** : Au lancement du playground, le pipeline démarre (researcher + coder OK)
+puis casse au Reviewer avec `google.genai.errors.ClientError: 400 INVALID_ARGUMENT —
+Duplicate function declaration found: read_text_file`. Cause racine : le Reviewer avait
+`tools=[fs_read, fs_write]`, et **les deux** toolsets déclaraient `read_text_file`
+(`fs_read` = read/list, `fs_write` = write + read pour que le Coder relise le manifeste).
+Gemini refuse toute requête où deux function declarations partagent un nom. L'erreur ne
+tombait qu'au **1er appel LLM du Reviewer** (3e sub-agent du `SequentialAgent`), d'où le
+diagnostic trompeur « le pipeline part bien puis casse ».
+
+**Décision** :
+1. **Reviewer sur un seul toolset** : nouvelle vue `fs_review` (filtre
+   `["read_text_file", "read_file", "list_directory", "write_file"]`) au lieu d'empiler
+   `fs_read` + `fs_write`. Un agent = un `McpToolset` → une seule déclaration par nom.
+   Les prompts sont inchangés (règle #2 : rien à répercuter dans `AGENT_PROMPTS.md`).
+2. **Garde-fou à l'import** : factory `_fs_toolset()` qui enregistre le `tool_filter` de
+   chaque vue dans `_TOOLSET_FILTERS`, puis `_assert_unique_tool_names()` exécutée sur
+   chaque sub-agent avant `App(...)`. Un chevauchement de filtres sur un même agent lève
+   désormais une `ValueError` immédiate et lisible au chargement du module, **avant** tout
+   appel réseau — au lieu d'un 400 tardif et opaque.
+
+**Alternative rejetée** :
+- **Retirer `read_text_file` de `fs_write`** → rejeté : le Coder en a besoin pour relire
+  `docs/ASSET_MANIFEST.md`. Le chevauchement n'est pas le problème ; l'empilement sur un
+  même agent l'est.
+- **Test pytest seul** (au lieu du garde-fou runtime) → rejeté : ne protège qu'en CI, pas
+  le playground local sur la machine WSL. Le garde-fou à l'import échoue vite, sans
+  dépendre du lancement des tests. (Un test reste bienvenu plus tard, non exclusif.)
+- **Lire le `tool_filter` via un attribut interne d'ADK** → rejeté : pas d'API publique
+  stable ; on mémorise le filtre nous-mêmes dans `_TOOLSET_FILTERS`.
+
+**Impact attendu** : pipeline complet researcher → coder → reviewer sans 400 ; toute
+future régression de ce type (empilement de toolsets qui se recoupent) échoue au
+chargement avec un message explicite plutôt qu'en cours de run.
+
+---
+
 ## 2026-07-05 — Sprint 1 : correction prompts Researcher et Coder
 
 **Contexte** : Les captures baseline du 5 juil. (`docs/screenshots/sprint1-baseline/`)
