@@ -104,6 +104,7 @@ Reviewer [✅ CRÉÉ Sprint 4] (relit le config, valide 3 axes, écrit un RAPPOR
 | 3 juillet | **Ajout d'un 3ème agent Reviewer** | Valider assets + richesse données + suggérer améliorations |
 | 5 juillet | **Reviewer en mode RAPPORT** (pas de boucle), 3ᵉ `sub_agent` du `SequentialAgent` | Plus sûr à démontrer + aucun changement d'orchestration ; boucle = travail futur (décision verrouillée avec l'utilisateur) |
 | 5 juillet | **Writeup + vidéo en EN**, docs racine migrés vers `docs/` | Jury international ; anti-drift (une seule source par doc) |
+| 6 juillet | **Pivot Tavily → dataset Clérac local (Filesystem MCP) pour le Reviewer** | Blocage TLS du VPN Imerys (inspection d'entreprise, cf. `TAVILY_VPN_INCIDENT.md`) + précision scientifique renforcée (sources CNPN/MRAe/DREAL vs Tavily on-the-fly). Voir `DECISIONS.md` |
 | 3 juillet | **Ajout d'un web MCP au Researcher** | Enrichir la biodiversité au-delà des fichiers locaux |
 | 3 juillet | **Playground UI comme preuve MCP pour le jury** | Debug view montre chaque tool_use / tool_result |
 | 3 juillet | **Documentation structurée dans le repo** | 8 fichiers markdown : voir section suivante |
@@ -117,17 +118,20 @@ Reviewer [✅ CRÉÉ Sprint 4] (relit le config, valide 3 axes, écrit un RAPPOR
 
 ## 📂 Structure documentaire du repo
 
-**État au 5 juillet 2026** :
+**État au 6 juillet 2026** :
 ```
 eco-mine-generator/
-├── CLAUDE.md                    ✅ créé — lu auto par Claude Code
-├── GEMINI.md                    ✅ créé — lu auto par Gemini CLI (contenu synchronisé avec CLAUDE.md)
+├── CLAUDE.md                        ✅ créé — lu auto par Claude Code
+├── GEMINI.md                        ✅ créé — lu auto par Gemini CLI (contenu synchronisé avec CLAUDE.md)
 └── docs/
-    ├── HANDOFF.md               ✅ ce document
-    ├── ARCHITECTURE.md          ✅ créé (5 juil.) — pipeline, MCP wiring diagram
-    ├── DECISIONS.md             ✅ créé — journal ADR-lite
-    ├── AGENT_PROMPTS.md         ✅ créé — instructions littérales des agents
-    └── ASSET_MANIFEST.md        ✅ créé — inventaire réel des assets (layout kenney/)
+    ├── HANDOFF.md                   ✅ ce document
+    ├── ARCHITECTURE.md              ✅ créé (5 juil.) — pipeline, MCP wiring diagram
+    ├── DECISIONS.md                 ✅ créé — journal ADR-lite
+    ├── AGENT_PROMPTS.md             ✅ créé — instructions littérales des agents
+    ├── ASSET_MANIFEST.md            ✅ créé — inventaire réel des assets (layout kenney/)
+    ├── TAVILY_VPN_INCIDENT.md       ✅ créé (6 juil.) — diagnostic blocage MCP Tavily via VPN Imerys
+    ├── CLERAC_RESEARCH_REPORT.md    ✅ créé (6 juil.) — recherche approfondie Clérac (sources CNPN/MRAe/DREAL)
+    └── clerac_species_reference.json ✅ créé (6 juil.) — dataset validé consommé par le Reviewer (Filesystem MCP)
 ```
 
 **Restent à créer dans `docs/`** :
@@ -233,16 +237,49 @@ eco-mine-generator/
 
 ---
 
-## 🌿 Biodiversité Clérac (à valider par le Researcher)
+## 🌿 Biodiversité Clérac (validée sur sources officielles au 6 juil.)
 
 Site : carrière kaolin Imerys à Clérac, Charente-Maritime.
 
-- **Faune** : rollier d'Europe, guêpier d'Europe, engoulevent, crapaud calamite, lézard ocellé, loutre
-- **Flore** : chêne tauzin, orchidées (Ophrys), bruyères, genêts
-- **Insectes** : azuré du serpolet, oedipode
-- **Contexte industriel** : kaolin, chamotte, argile réfractaire
+**Source de vérité** : `docs/clerac_species_reference.json` (dataset structuré,
+51 espèces validées, consommé par le Reviewer via Filesystem MCP). Contexte complet
+et méthodologie : `docs/CLERAC_RESEARCH_REPORT.md`.
 
-Le Researcher doit générer ces listes automatiquement via web MCP, pas les avoir en dur.
+### Espèces emblématiques réelles (à privilégier dans les configs générés)
+
+- **Oiseaux** : **Fauvette pitchou** (LA star du site, landes à ajoncs), Engoulevent
+  d'Europe, Martin pêcheur d'Europe, Oedicnème criard, Pie-grièche écorcheur, Pipit
+  rousseline, Bouvreuil pivoine, Milan noir
+- **Amphibiens** : **Crapaud calamite** (espèce pionnière typique des carrières),
+  Alyte accoucheur, Triton marbré, Rainette méridionale, Salamandre tachetée
+- **Reptiles** : **Lézard à deux raies**, Couleuvre verte et jaune, Coronelle
+  girondine, Vipère aspic, Orvet fragile (10 espèces au total)
+- **Mammifères** : **Vison d'Europe** (CR), **Loutre d'Europe**, Genette commune,
+  Campagnol amphibie, Crossope aquatique
+- **Chiroptères** : 19 espèces protégées (Noctule commune, Murin de Daubenton…)
+- **Insectes** : **Fadet des Laîches**, **Damier de la Succise**, Leucorrhine à
+  front blanc, Grand Capricorne
+- **Flore** : **Piment royal** (seule protection régionale à Clérac), Osmonde royale,
+  Droséra à feuilles rondes, Bruyère à 4 angles, Isoëtes, orchidées (prairies maigres)
+- **Contexte industriel** : kaolin → chamotte (argile calcinée réfractaire) — usine
+  Clérac = plus importante d'Europe pour la chamotte
+
+### ⚠️ Espèces incorrectes à NE PAS générer
+
+Trois espèces mentionnées dans les anciennes versions de ce document sont en
+réalité **méditerranéennes** et n'apparaissent dans AUCUN inventaire officiel du
+site Clérac (CNPN Perrin 2022, MRAe, DREAL FR5400437). Le Reviewer les détecte
+comme erreurs :
+
+| Espèce à éviter | Substitution recommandée |
+|-----------------|--------------------------|
+| Rollier d'Europe | Fauvette pitchou (vraie emblème Clérac) |
+| Guêpier d'Europe | Martin pêcheur d'Europe |
+| Lézard ocellé | Lézard à deux raies |
+
+Le Researcher doit générer sa liste via web MCP (Tavily + Fetch), mais si le web
+échoue, le fallback CSR reste en place. Le Reviewer valide en aval contre le
+dataset local — voir `docs/DECISIONS.md` § 2026-07-06.
 
 ---
 
@@ -289,6 +326,15 @@ Sur la machine de test (WSL 2) :
 
 ---
 
-*Fin du document HANDOFF. À jour au 5 juillet 2026. Sprints 2–3 codés (validation WSL en
-attente) ; **Sprint 4** : Reviewer (mode rapport) + writeup + script vidéo écrits, validation
-WSL à faire (Reviewer sur config cassé → FAIL, pipeline complet → PASS, badge atteignable).*
+*Fin du document HANDOFF. À jour au 6 juillet 2026. Sprints 2–3 codés (validation WSL en
+attente) ; **Sprint 4** : Reviewer (mode rapport) + writeup + script vidéo écrits.
+
+**Update 6 juil.** : incident MCP Tavily bloqué par le VPN Imerys →
+pivot vers un dataset Clérac local (`docs/clerac_species_reference.json`) consommé
+par le Reviewer via Filesystem MCP. 51 espèces validées sur sources officielles
+(CNPN/MRAe/DREAL/INPN). Voir `docs/TAVILY_VPN_INCIDENT.md`,
+`docs/CLERAC_RESEARCH_REPORT.md`, `docs/DECISIONS.md` § 2026-07-06.
+
+Validation WSL restante : Reviewer sur config cassé → FAIL, pipeline complet → PASS,
+badge atteignable, et **prompt Reviewer à jour dans `app/agent.py`** (contrat Axe 2
+change : lecture du JSON local au lieu de Tavily — voir `docs/AGENT_PROMPTS.md`).*

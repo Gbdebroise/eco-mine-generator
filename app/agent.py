@@ -269,9 +269,15 @@ coder_agent = LlmAgent(
 # Sprint 4. Décision verrouillée : le Reviewer produit un rapport lisible
 # (docs/reviews/review_<site>.md) et NE renvoie PAS au Coder. Il est simplement
 # ajoute comme 3e sub_agent du SequentialAgent (aucun changement d'orchestration).
-# Tools : fs_read (relire le config + schema + manifeste), web_search (Tavily, pour
-# fact-checker une espece douteuse = MCP call visible en plus), fs_write (ecrire le
-# rapport). Le prompt litteral est aussi dans docs/AGENT_PROMPTS.md (regle CLAUDE.md #2).
+#
+# Update 6 juil. — Pivot Tavily -> dataset Clerac local via Filesystem MCP :
+# le web_search (Tavily) etait bloque par l'inspection TLS du VPN Imerys sur la
+# machine de test (voir docs/TAVILY_VPN_INCIDENT.md). Le Reviewer consomme
+# desormais docs/clerac_species_reference.json (51 especes validees, 3 especes
+# incorrectes signalees explicitement, sources CNPN/MRAe/DREAL) via fs_read.
+# Tools : fs_read (config + schema + manifeste + dataset Clerac), fs_write
+# (ecrire le rapport). Le prompt litteral est aussi dans docs/AGENT_PROMPTS.md
+# (regle CLAUDE.md #2). Voir docs/DECISIONS.md § 2026-07-06.
 reviewer_agent = LlmAgent(
     name="reviewer_agent",
     model=Gemini(model="gemini-2.5-pro"),
@@ -288,6 +294,13 @@ reviewer_agent = LlmAgent(
     a) Appelle read_text_file sur 'public/level_config.json' (le config a valider).
     b) Appelle read_text_file sur 'docs/level_config_schema.md' (le contrat de format
        et les plages recommandees).
+    c) Appelle read_text_file sur 'docs/clerac_species_reference.json' (le dataset
+       de reference constitue depuis les sources officielles - CNPN, MRAe, DREAL,
+       INPN). Ce fichier contient : especes_validees (par taxon, avec noms francais
+       et scientifiques), especes_incorrectes (rollier d'Europe, guepier d'Europe,
+       lezard ocelle - mediterraneennes, absentes des inventaires Clerac ; chacune
+       a une substitution_recommandee_id), habitats_valides, site_context (minerai,
+       commune, operateur).
     Analyse le JSON tel qu'il est reellement sur le disque, pas ce que tu supposes.
 
     ETAPE 2 - VALIDER SUR 3 AXES :
@@ -313,17 +326,35 @@ reviewer_agent = LlmAgent(
       'missing_assets' existe, signale-le explicitement (ne le cache pas).
 
     AXE 2 - COHERENCE THEMATIQUE CLERAC :
-    - Chaque espece de biodiversity_species doit appartenir a la liste reelle du site.
-      Liste connue pour Clerac : European Roller, Bee-eater, Nightjar, Natterjack Toad,
-      Ocellated Lizard, Migratory Birds, Cave Bats, orchidees, insectes locaux.
-    - AUCUNE espece hors-site (pas de tigre, ours polaire, flore mediterraneenne non
-      pertinente).
-    - Le minerai doit etre du kaolin / chamotte (PAS charbon, PAS or).
-    - Si une espece n'est PAS dans la liste connue et n'apparait pas dans {csr_summary} :
-      NE DEVINE PAS. Appelle l'outil de recherche Tavily disponible avec une requete du
-      type "<espece> Clerac Charente-Maritime carriere biodiversite" pour verifier si
-      elle est credible sur le site ou sa region, et consigne le resultat (verifiee /
-      douteuse / hors-site). C'est un MCP call supplementaire, attendu.
+    Utilise le dataset docs/clerac_species_reference.json relu a l'ETAPE 1c comme
+    SOURCE DE VERITE. Ne devine pas, ne raisonne pas sur ta connaissance interne :
+    compare mecaniquement chaque element du config a ce dataset.
+
+    - biodiversity_species : pour chaque espece du config, cherche-la dans le dataset
+      (nom_fr, nom_scientifique, ou traduction anglaise evidente type "Natterjack Toad"
+      pour "Crapaud calamite") :
+        (a) presente dans especes_validees (un des taxons oiseaux/amphibiens/reptiles/
+            insectes/mammiferes/chiropteres/flore) -> OK, aucun probleme ;
+        (b) presente dans especes_incorrectes (notamment rollier d'Europe /
+            European Roller, guepier d'Europe / Bee-eater, lezard ocelle /
+            Ocellated Lizard - mediterraneennes, absentes des inventaires officiels
+            Clerac) -> issue de severite indiquee par le champ 'severite' de l'entree
+            ('error' ou 'warning'), avec la substitution recommandee (via
+            substitution_recommandee_id -> retrouve le nom_fr correspondant dans
+            especes_validees) ;
+        (c) inconnue (ni validee ni incorrecte) -> issue de severite 'warning',
+            verdict "a verifier - hors dataset de reference".
+    - biome / protected_area / danger_obstacle : si mentionnent un habitat, verifie-le
+      contre habitats_valides du dataset. Habitat inconnu -> warning.
+    - mineral_name et minerais mentionnes dans les ui_strings : doivent correspondre
+      a site_context.minerai_principal du dataset (kaolin). Charbon, or, ou autre
+      mineral incoherent -> issue de severite 'error'.
+    - site_name : doit etre Clerac ou une commune du bassin argilier des Charentes
+      (verifiable via site_context du dataset). Ecart -> warning.
+
+    N'appelle AUCUN outil web pour cet axe : le dataset local est la source unique.
+    La lecture du dataset a l'ETAPE 1c est le MCP call qui prouve cette validation
+    dans la debug view.
 
     AXE 3 - EQUILIBRAGE GAMEPLAY :
     Bareme reel du moteur (public/game.js) : minerai +10 ; oiseau +15 et +1 Green ;
@@ -345,8 +376,9 @@ reviewer_agent = LlmAgent(
       ## Axis 1 — Config validity
       (liste des cles/valeurs verifiees, chaque hors-plage cite avec la valeur reelle)
       ## Axis 2 — Clerac thematic coherence
-      (statut de chaque espece ; toute recherche Tavily citee avec son verdict ;
-       confirmation kaolin/chamotte)
+      (statut de chaque espece : validated / incorrect (with recommended substitution
+       from the reference dataset) / unknown ; habitat check against habitats_valides ;
+       kaolin/chamotte confirmation from clerac_species_reference.json site_context)
       ## Axis 3 — Gameplay balance
       (attaignabilite du badge estimee ; non-trivialite ; etat de la courbe)
       ## Issues
@@ -359,7 +391,7 @@ reviewer_agent = LlmAgent(
     ETAPE 4 - CONFIRMER a l'utilisateur : indique le verdict global et le chemin du
     rapport ecrit. N'ecris JAMAIS le rapport avant d'avoir relu le config (ETAPE 1).
     """,
-    tools=[fs_read, web_search, fs_write],
+    tools=[fs_read, fs_write],
 )
 
 # === Pipeline séquentiel : recherche -> code -> review ===

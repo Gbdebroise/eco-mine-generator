@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "meta": {
+    "site": "Clérac",
+    "version": "1.0.0",
+    "last_updated": "2026-07-06",
+    "purpose": "Dataset de référence Clérac pour validation par le Reviewer agent d'Eco-Mine Generator. Lu via Filesystem MCP.",
+    "sources_principales": [
+      "Avis CNPN carrière Perrin Clérac (juin 2022)",
+      "Avis MRAe Nouvelle-Aquitaine (2022)",
+      "Fiche Natura 2000 FR5400437 - Landes de Montendre (DREAL)",
+      "Site imerys.com - Programme biodiversité Clérac",
+      "Inventaires Biotope 2018-2021"
+    ],
+    "notes": "Voir docs/CLERAC_RESEARCH_REPORT.md pour la note méthodologique complète."
+  },
+  "site_context": {
+    "commune": "Clérac",
+    "code_insee": "17106",
+    "code_postal": "17270",
+    "departement": "Charente-Maritime",
+    "region": "Nouvelle-Aquitaine",
+    "operateur": "Imerys Refractory Minerals Clérac",
+    "type_activite": "Extraction et transformation d'argiles kaoliniques",
+    "minerai_principal": "kaolin",
+    "produit_final": "chamotte (argile calcinée)",
+    "marches": ["céramiques réfractaires", "minéraux performates", "fonderies"],
+    "usine_position_europe": "plus importante d'Europe pour la chamotte",
+    "code_naf": "0812Z",
+    "historique": "Exploitation depuis le début du 20e siècle"
+  },
+  "carrieres_associees": [
+    {
+      "nom": "Carrière de Bonnin",
+      "statut": "fin d'exploitation vers 2023"
+    },
+    {
+      "nom": "Carrière Perrin",
+      "statut": "autorisée 2022, 20 ans d'exploitation",
+      "surface_ha": 14.6,
+      "gisement": "Fontbouillant"
+    },
+    {
+      "nom": "Carrière de Touvérac",
+      "commune": "Saint-Pierre-du-Palais (16)",
+      "statut": "désaffectée depuis les années 90, réhabilitée",
+      "surface_zone_humide_ha": 35,
+      "classements": ["ZNIEFF type 1", "Natura 2000"]
+    }
+  ],
+  "programmes_biodiversite": [
+    {
+      "nom": "ACRO-bag",
+      "description": "Analyse Comparative de la Restauration écologique par les Opérations de Baguage",
+      "partenaire": "Muséum National d'Histoire Naturelle"
+    },
+    {
+      "nom": "act4nature",
+      "description": "Coalition française biodiversité, adhésion Imerys"
+    },
+    {
+      "nom": "Séquence ERC",
+      "description": "Éviter, Réduire, Compenser sur chaque nouvelle exploitation"
+    }
+  ],
+  "habitats_valides": [
+    {
+      "id": "landes_bruyere",
+      "nom_fr": "Landes à bruyère",
+      "statut": "habitat prioritaire directive européenne",
+      "especes_associees_ids": ["fauvette_pitchou", "engoulevent_europe"]
+    },
+    {
+      "id": "landes_seches_ajoncs",
+      "nom_fr": "Landes sèches à ajoncs",
+      "statut": "habitat de la Fauvette pitchou",
+      "especes_associees_ids": ["fauvette_pitchou"]
+    },
+    {
+      "id": "landes_tourbeuses_bruyere_4_angles",
+      "nom_fr": "Landes tourbeuses à Bruyère à 4 angles",
+      "statut": "habitat prioritaire"
+    },
+    {
+      "id": "tourbiere_drosera",
+      "nom_fr": "Tourbière à Droséra à feuilles rondes",
+      "statut": "habitat prioritaire"
+    },
+    {
+      "id": "pelouse_inondable_isoetes",
+      "nom_fr": "Pelouse inondable à Isoëtes",
+      "statut": "habitat prioritaire"
+    },
+    {
+      "id": "pinede_pin_maritime",
+      "nom_fr": "Pinède de pin maritime",
+      "statut": "majoritaire dans l'emprise projet"
+    },
+    {
+      "id": "taillis_chataignier",
+      "nom_fr": "Taillis de châtaigniers",
+      "statut": "fort enjeu chiroptères"
+    },
+    {
+      "id": "aulnaie_marecageuse",
+      "nom_fr": "Aulnaie marécageuse à Osmonde royale",
+      "statut": "zone humide"
+    },
+    {
+      "id": "prairie_maigre_orchidees",
+      "nom_fr": "Prairie maigre riche en orchidées",
+      "statut": "habitat d'intérêt communautaire"
+    },
+    {
+      "id": "mare_temporaire",
+      "nom_fr": "Mare temporaire",
+      "statut": "site de reproduction amphibiens",
+      "especes_associees_ids": ["crapaud_calamite", "triton_marbre"]
+    },
+    {
+      "id": "zone_humide",
+      "nom_fr": "Zone humide",
+      "statut": "1,8 ha identifiés sur l'aire d'étude Perrin"
+    },
+    {
+      "id": "ancien_bassin_exploitation",
+      "nom_fr": "Ancien bassin d'exploitation",
+      "statut": "refuge de biodiversité post-exploitation"
+    }
+  ],
+  "especes_validees": {
+    "oiseaux": [
+      {
+        "id": "fauvette_pitchou",
+        "nom_fr": "Fauvette pitchou",
+        "nom_scientifique": "Curruca undata",
+        "role_emblematique": true,
+        "code_natura_2000": "A302",
+        "statut_protection_fr": "Protection totale (arrêté ministériel 17/04/1981)",
+        "statut_directive_europeenne": "Annexe I Directive Oiseaux",
+        "statut_uicn_fr": "Quasi menacé (NT)",
+        "habitats_ids": ["landes_seches_ajoncs", "landes_bruyere"],
+        "notes": "Espèce symbolique du site Clérac. Niche dans les ajoncs denses (nid entre 15 cm et 1 m du sol). Sédentaire, insectivore stricte. Très sensible aux hivers rigoureux."
+      },
+      {
+        "id": "engoulevent_europe",
+        "nom_fr": "Engoulevent d'Europe",
+        "nom_scientifique": "Caprimulgus europaeus",
+        "code_natura_2000": "A224",
+        "statut_protection_fr": "Protection totale",
+        "statut_directive_europeenne": "Annexe I Directive Oiseaux",
+        "habitats_ids": ["landes_bruyere", "pinede_pin_maritime"],
+        "notes": "Oiseau crépusculaire, chant caractéristique."
+      },
+      {
+        "id": "martin_pecheur",
+        "nom_fr": "Martin pêcheur d'Europe",
+        "nom_scientifique": "Alcedo atthis",
+        "code_natura_2000": "A229",
+        "habitats_ids": ["zone_humide", "ancien_bassin_exploitation"],
+        "notes": "Habite sablières et zones humides du site."
+      },
+      {
+        "id": "milan_noir",
+        "nom_fr": "Milan noir",
+        "nom_scientifique": "Milvus migrans",
+        "code_natura_2000": "A073",
+        "statut_directive_europeenne": "Annexe I Directive Oiseaux"
+      },
+      {
+        "id": "oedicneme_criard",
+        "nom_fr": "Oedicnème criard",
+        "nom_scientifique": "Burhinus oedicnemus",
+        "code_natura_2000": "A133",
+        "habitats_ids": ["landes_bruyere"]
+      },
+      {
+        "id": "pie_grieche_ecorcheur",
+        "nom_fr": "Pie-grièche écorcheur",
+        "nom_scientifique": "Lanius collurio",
+        "code_natura_2000": "A338"
+      },
+      {
+        "id": "pipit_rousseline",
+        "nom_fr": "Pipit rousseline",
+        "nom_scientifique": "Anthus campestris",
+        "code_natura_2000": "A255",
+        "habitats_ids": ["landes_bruyere"]
+      },
+      {
+        "id": "bouvreuil_pivoine",
+        "nom_fr": "Bouvreuil pivoine",
+        "nom_scientifique": "Pyrrhula pyrrhula",
+        "habitats_ids": ["taillis_chataignier"]
+      }
+    ],
+    "amphibiens": [
+      {
+        "id": "crapaud_calamite",
+        "nom_fr": "Crapaud calamite",
+        "nom_scientifique": "Epidalea calamita",
+        "role_emblematique": true,
+        "statut_protection_fr": "Protection totale (arrêté 08/01/2021)",
+        "statut_directive_europeenne": "Annexe IV Directive Habitats",
+        "habitats_ids": ["mare_temporaire", "ancien_bassin_exploitation"],
+        "notes": "Espèce pionnière typique des carrières. Se reproduit dans mares temporaires. Emblématique de la reconversion écologique des sites d'extraction."
+      },
+      {
+        "id": "alyte_accoucheur",
+        "nom_fr": "Alyte accoucheur",
+        "nom_scientifique": "Alytes obstetricans",
+        "statut_protection_fr": "Protection totale"
+      },
+      {
+        "id": "grenouille_agile",
+        "nom_fr": "Grenouille agile",
+        "nom_scientifique": "Rana dalmatina"
+      },
+      {
+        "id": "grenouilles_vertes",
+        "nom_fr": "Complexe des Grenouilles vertes",
+        "nom_scientifique": "Pelophylax sp."
+      },
+      {
+        "id": "rainette_meridionale",
+        "nom_fr": "Rainette méridionale",
+        "nom_scientifique": "Hyla meridionalis"
+      },
+      {
+        "id": "salamandre_tachetee",
+        "nom_fr": "Salamandre tachetée",
+        "nom_scientifique": "Salamandra salamandra"
+      },
+      {
+        "id": "triton_marbre",
+        "nom_fr": "Triton marbré",
+        "nom_scientifique": "Triturus marmoratus",
+        "habitats_ids": ["mare_temporaire"]
+      },
+      {
+        "id": "triton_palme",
+        "nom_fr": "Triton palmé",
+        "nom_scientifique": "Lissotriton helveticus"
+      },
+      {
+        "id": "crapaud_epineux",
+        "nom_fr": "Crapaud épineux",
+        "nom_scientifique": "Bufo spinosus"
+      }
+    ],
+    "reptiles": [
+      {
+        "id": "lezard_deux_raies",
+        "nom_fr": "Lézard à deux raies",
+        "nom_scientifique": "Lacerta bilineata",
+        "role_emblematique": true,
+        "notes": "Remplace le Lézard ocellé (méditerranéen, absent de Clérac)."
+      },
+      {
+        "id": "lezard_murailles",
+        "nom_fr": "Lézard des murailles",
+        "nom_scientifique": "Podarcis muralis"
+      },
+      {
+        "id": "couleuvre_esculape",
+        "nom_fr": "Couleuvre d'Esculape",
+        "nom_scientifique": "Zamenis longissimus"
+      },
+      {
+        "id": "couleuvre_helvetique",
+        "nom_fr": "Couleuvre helvétique",
+        "nom_scientifique": "Natrix helvetica"
+      },
+      {
+        "id": "couleuvre_verte_jaune",
+        "nom_fr": "Couleuvre verte et jaune",
+        "nom_scientifique": "Hierophis viridiflavus"
+      },
+      {
+        "id": "couleuvre_viperine",
+        "nom_fr": "Couleuvre vipérine",
+        "nom_scientifique": "Natrix maura",
+        "habitats_ids": ["zone_humide"]
+      },
+      {
+        "id": "coronelle_girondine",
+        "nom_fr": "Coronelle girondine",
+        "nom_scientifique": "Coronella girondica"
+      },
+      {
+        "id": "coronelle_lisse",
+        "nom_fr": "Coronelle lisse",
+        "nom_scientifique": "Coronella austriaca"
+      },
+      {
+        "id": "orvet_fragile",
+        "nom_fr": "Orvet fragile",
+        "nom_scientifique": "Anguis fragilis"
+      },
+      {
+        "id": "vipere_aspic",
+        "nom_fr": "Vipère aspic",
+        "nom_scientifique": "Vipera aspis"
+      }
+    ],
+    "insectes": [
+      {
+        "id": "fadet_laiches",
+        "nom_fr": "Fadet des Laîches",
+        "nom_scientifique": "Coenonympha oedippus",
+        "role_emblematique": true,
+        "statut_directive_europeenne": "Annexes II et IV Directive Habitats",
+        "habitats_ids": ["prairie_maigre_orchidees", "zone_humide"],
+        "notes": "Papillon protégé, forte présence sur Clérac, mesure compensatoire dédiée (0,54 ha) sur Perrin."
+      },
+      {
+        "id": "damier_succise",
+        "nom_fr": "Damier de la Succise",
+        "nom_scientifique": "Euphydryas aurinia",
+        "statut_directive_europeenne": "Annexe II Directive Habitats",
+        "habitats_ids": ["prairie_maigre_orchidees"]
+      },
+      {
+        "id": "leucorrhine_front_blanc",
+        "nom_fr": "Leucorrhine à front blanc",
+        "nom_scientifique": "Leucorrhinia albifrons",
+        "statut_directive_europeenne": "Annexes II et IV Directive Habitats",
+        "habitats_ids": ["mare_temporaire"],
+        "notes": "Libellule des mares acides."
+      },
+      {
+        "id": "grand_capricorne",
+        "nom_fr": "Grand Capricorne",
+        "nom_scientifique": "Cerambyx cerdo",
+        "notes": "Coléoptère xylophage, associé aux vieux chênes."
+      }
+    ],
+    "mammiferes": [
+      {
+        "id": "vison_europe",
+        "nom_fr": "Vison d'Europe",
+        "nom_scientifique": "Mustela lutreola",
+        "role_emblematique": true,
+        "statut_uicn_fr": "En danger critique (CR)",
+        "habitats_ids": ["zone_humide"],
+        "notes": "Espèce parmi les plus menacées de France."
+      },
+      {
+        "id": "loutre_europe",
+        "nom_fr": "Loutre d'Europe",
+        "nom_scientifique": "Lutra lutra",
+        "role_emblematique": true,
+        "statut_directive_europeenne": "Annexes II et IV Directive Habitats",
+        "habitats_ids": ["zone_humide"]
+      },
+      {
+        "id": "campagnol_amphibie",
+        "nom_fr": "Campagnol amphibie",
+        "nom_scientifique": "Arvicola sapidus",
+        "habitats_ids": ["zone_humide"]
+      },
+      {
+        "id": "crossope_aquatique",
+        "nom_fr": "Crossope aquatique",
+        "nom_scientifique": "Neomys fodiens",
+        "habitats_ids": ["zone_humide"]
+      },
+      {
+        "id": "putois_europe",
+        "nom_fr": "Putois d'Europe",
+        "nom_scientifique": "Mustela putorius"
+      },
+      {
+        "id": "genette_commune",
+        "nom_fr": "Genette commune",
+        "nom_scientifique": "Genetta genetta"
+      },
+      {
+        "id": "ecureuil_roux",
+        "nom_fr": "Écureuil roux",
+        "nom_scientifique": "Sciurus vulgaris"
+      },
+      {
+        "id": "herisson_europe",
+        "nom_fr": "Hérisson d'Europe",
+        "nom_scientifique": "Erinaceus europaeus"
+      }
+    ],
+    "chiropteres": [
+      {
+        "id": "noctule_commune",
+        "nom_fr": "Noctule commune",
+        "nom_scientifique": "Nyctalus noctula",
+        "role_emblematique": true,
+        "notes": "Enjeu CNPN sur Perrin."
+      },
+      {
+        "id": "murin_moustaches",
+        "nom_fr": "Murin à moustaches",
+        "nom_scientifique": "Myotis mystacinus"
+      },
+      {
+        "id": "murin_alcathoe",
+        "nom_fr": "Murin d'Alcathoe",
+        "nom_scientifique": "Myotis alcathoe"
+      },
+      {
+        "id": "murin_daubenton",
+        "nom_fr": "Murin de Daubenton",
+        "nom_scientifique": "Myotis daubentonii"
+      },
+      {
+        "id": "murin_natterer",
+        "nom_fr": "Murin de Natterer",
+        "nom_scientifique": "Myotis nattereri"
+      }
+    ],
+    "flore": [
+      {
+        "id": "piment_royal",
+        "nom_fr": "Piment royal",
+        "nom_scientifique": "Myrica gale",
+        "role_emblematique": true,
+        "statut_protection_fr": "Protection régionale Poitou-Charentes",
+        "habitats_ids": ["landes_bruyere", "zone_humide"],
+        "notes": "Seule espèce à protection régionale identifiée sur Perrin. Arbuste des landes humides."
+      },
+      {
+        "id": "simethis_feuille_plane",
+        "nom_fr": "Simethis à feuille plane",
+        "nom_scientifique": "Simethis mattiazzii",
+        "statut_protection_fr": "Protection"
+      },
+      {
+        "id": "orchidees",
+        "nom_fr": "Orchidées",
+        "nom_scientifique": "Orchidaceae (diverses espèces)",
+        "habitats_ids": ["prairie_maigre_orchidees"],
+        "notes": "Présentes dans les prairies maigres du site N2000. Espèces exactes non détaillées dans les documents officiels Clérac."
+      },
+      {
+        "id": "osmonde_royale",
+        "nom_fr": "Osmonde royale",
+        "nom_scientifique": "Osmunda regalis",
+        "habitats_ids": ["aulnaie_marecageuse"]
+      },
+      {
+        "id": "drosera_feuilles_rondes",
+        "nom_fr": "Droséra à feuilles rondes",
+        "nom_scientifique": "Drosera rotundifolia",
+        "habitats_ids": ["tourbiere_drosera"],
+        "notes": "Plante carnivore des tourbières."
+      },
+      {
+        "id": "bruyere_4_angles",
+        "nom_fr": "Bruyère à 4 angles",
+        "nom_scientifique": "Erica tetralix",
+        "habitats_ids": ["landes_tourbeuses_bruyere_4_angles"]
+      },
+      {
+        "id": "isoetes",
+        "nom_fr": "Isoëtes",
+        "nom_scientifique": "Isoetes sp.",
+        "habitats_ids": ["pelouse_inondable_isoetes"]
+      }
+    ]
+  },
+  "especes_incorrectes": [
+    {
+      "nom_fr": "Rollier d'Europe",
+      "nom_scientifique": "Coracias garrulus",
+      "raison_exclusion": "Espèce méditerranéenne, présente principalement dans le Sud-Est de la France (PACA, Languedoc). Absente des inventaires officiels Clérac.",
+      "severite": "error",
+      "substitution_recommandee_id": "fauvette_pitchou"
+    },
+    {
+      "nom_fr": "Guêpier d'Europe",
+      "nom_scientifique": "Merops apiaster",
+      "raison_exclusion": "Nicheur méditerranéen en expansion vers le nord, mais non documenté dans les inventaires officiels Clérac. Éventuellement observable en migration mais pas comme espèce caractéristique.",
+      "severite": "warning",
+      "substitution_recommandee_id": "martin_pecheur"
+    },
+    {
+      "nom_fr": "Lézard ocellé",
+      "nom_scientifique": "Timon lepidus",
+      "raison_exclusion": "Espèce méditerranéenne, limite nord de son aire en Gironde/Landes littorales. Absent des inventaires Clérac.",
+      "severite": "error",
+      "substitution_recommandee_id": "lezard_deux_raies"
+    }
+  ],
+  "regles_validation_reviewer": {
+    "axe_1_config_valide": {
+      "description": "Le config JSON respecte le schéma défini au Sprint 3",
+      "checks": [
+        "Toutes les clés requises présentes",
+        "Valeurs numériques dans les plages recommandées",
+        "Chemins d'assets existants sur disque (vérifiable via MCP filesystem)"
+      ]
+    },
+    "axe_2_coherence_clerac": {
+      "description": "Le contenu généré est cohérent avec le site Imerys Clérac",
+      "checks": [
+        {
+          "regle": "minerai_correct",
+          "description": "Le champ 'minerai' doit être 'kaolin'",
+          "severite_si_faux": "error"
+        },
+        {
+          "regle": "commune_correcte",
+          "description": "La commune mentionnée doit être Clérac ou une commune limitrophe du bassin argilier des Charentes",
+          "severite_si_faux": "warning"
+        },
+        {
+          "regle": "especes_validees",
+          "description": "Chaque espèce mentionnée doit exister dans especes_validees",
+          "severite_si_faux": "error"
+        },
+        {
+          "regle": "especes_non_incorrectes",
+          "description": "Aucune espèce mentionnée ne doit être dans especes_incorrectes",
+          "severite_si_faux": "voir champ severite dans l'entrée"
+        },
+        {
+          "regle": "habitats_valides",
+          "description": "Chaque habitat mentionné doit exister dans habitats_valides",
+          "severite_si_faux": "warning"
+        }
+      ]
+    },
+    "axe_3_equilibrage_gameplay": {
+      "description": "Le badge Imerys Green est atteignable mais non trivial",
+      "checks": [
+        "Badge atteignable : score > 5000 ET green_points > 30 possible pour un joueur moyen",
+        "Badge non trivial : seuils non atteints en moins de 60 secondes",
+        "Courbe de difficulté progressive (non plate)"
+      ]
+    },
+    "output_format": {
+      "type": "ReviewResult",
+      "schema": {
+        "passed": "bool",
+        "iteration": "int",
+        "issues": [
+          {
+            "axis": "config_valide | coherence_clerac | equilibrage_gameplay",
+            "severity": "error | warning | info",
+            "message": "string (description humaine)",
+            "field_path": "string (chemin dans le config JSON)",
+            "suggested_fix": "string (correction proposée)"
+          }
+        ],
+        "summary": "string (verdict global)"
+      }
+    }
+  }
+}

@@ -402,9 +402,10 @@ Incrément appliqué **par-dessus** les modifications 1-3. Le Coder connaît dé
 ## Reviewer
 
 - **Modèle** : `gemini-2.5-pro`
-- **Tools** : `fs_read` (MCP filesystem lecture : relit le config + le schéma + le manifeste),
-  `web_search` (Tavily : fact-check d'une espèce douteuse = MCP call visible en plus),
-  `fs_write` (MCP filesystem écriture : écrit le rapport)
+- **Tools** : `fs_read` (MCP filesystem lecture : relit le config + le schéma + le manifeste
+  + **`docs/clerac_species_reference.json` — nouveau, cf. pivot Tavily du 6 juil.**),
+  `fs_write` (MCP filesystem écriture : écrit le rapport). **Plus de `web_search` (Tavily)** :
+  retiré suite au blocage TLS du VPN Imerys, voir `DECISIONS.md` § 2026-07-06.
 - **Entrée** : `{csr_summary}` (state écrit par le Researcher) + `public/level_config.json` relu sur disque
 - **Sortie** : écrit `docs/reviews/review_<site>.md` (mode **rapport**, PAS de renvoi au Coder)
 - **Position** : 3ᵉ `sub_agent` du `SequentialAgent` (`researcher → coder → reviewer`)
@@ -417,23 +418,38 @@ Le Reviewer valide le config sur **3 axes** et produit un verdict global
 - **Axe 1 — Validité du config** : JSON parse + respect du schéma (`docs/level_config_schema.md`),
   toutes les valeurs dans leurs plages, aucun `spawn_weight` à 0, aucune section vide ;
   tout chemin d'asset référencé est vérifié sur disque (MCP read) ; `missing_assets` signalé.
-- **Axe 2 — Cohérence thématique Clérac** : chaque espèce ∈ liste réelle du site (rollier,
-  guêpier, engoulevent, crapaud calamite, lézard ocellé, orchidées, insectes locaux, oiseaux
-  migrateurs, chauves-souris) ; aucune espèce hors-site ; minerai = kaolin/chamotte. Toute
-  espèce hors liste ET absente de `{csr_summary}` → **fact-check Tavily** (MCP visible), verdict
-  consigné (vérifiée / douteuse / hors-site).
+- **Axe 2 — Cohérence thématique Clérac** (mise à jour 6 juil., voir `DECISIONS.md`) :
+  le Reviewer lit `docs/clerac_species_reference.json` via `read_text_file` (MCP call
+  visible en plus). Chaque espèce mentionnée dans le config est confrontée à ce
+  dataset :
+  (a) présente dans `especes_validees` → OK ;
+  (b) présente dans `especes_incorrectes` (rollier d'Europe, guêpier d'Europe, lézard
+  ocellé — méditerranéennes, absentes des inventaires officiels Clérac) → **issue
+  de sévérité `error`** avec substitution recommandée depuis le champ
+  `substitution_recommandee_id` ;
+  (c) inconnue (ni validée ni incorrecte) → **issue de sévérité `warning`**, verdict
+  « à vérifier ». Chaque habitat mentionné est vérifié contre `habitats_valides`
+  (`warning` sinon). `minerai` doit être `kaolin` (`error` sinon). `commune` doit être
+  Clérac ou une commune du bassin argilier (`warning` sinon).
 - **Axe 3 — Équilibrage gameplay** (barème réel `game.js` : minerai +10, oiseau +15/+1 Green,
   bosquet −20/−3, dynamite `score_malus`/`green_malus`, distance +1/10 px ; badge si
   `score ≥ min_score` **ET** `green ≥ min_green_points`) : badge atteignable mais non trivial
   (pas en ~30 s) ; courbe de difficulté présente et calibrée (`speed_start < speed_max`).
 
-### Prompt actuel (Sprint 4)
+### Prompt actuel (Sprint 4, mis à jour 6 juil.)
 
 Le prompt littéral est dans [`app/agent.py`](../app/agent.py) (`reviewer_agent.instruction`).
 Il impose : ÉTAPE 1 relire (`read_text_file` sur `public/level_config.json` +
-`docs/level_config_schema.md`) → ÉTAPE 2 valider les 3 axes → ÉTAPE 3 écrire le rapport
-Markdown en anglais via `write_file` dans `docs/reviews/review_<site>.md` (structure imposée :
-Verdict, Axis 1/2/3, Issues) → ÉTAPE 4 confirmer le verdict + le chemin.
+`docs/level_config_schema.md` + **`docs/clerac_species_reference.json`**) → ÉTAPE 2
+valider les 3 axes (Axe 2 utilise le dataset local, plus d'appel Tavily) → ÉTAPE 3
+écrire le rapport Markdown en anglais via `write_file` dans `docs/reviews/review_<site>.md`
+(structure imposée : Verdict, Axis 1/2/3, Issues) → ÉTAPE 4 confirmer le verdict + le
+chemin.
+
+⚠️ **À synchroniser dans `app/agent.py`** : la version actuelle du code référence
+encore `web_search` (Tavily) dans les tools et un fact-check web dans l'ÉTAPE 2 du
+prompt. À aligner sur le contrat ci-dessus (tools = `[fs_read, fs_write]`, ÉTAPE 1
+lit aussi `docs/clerac_species_reference.json`). Voir `DECISIONS.md` § 2026-07-06.
 
 ### Justification des choix
 
@@ -444,8 +460,16 @@ Verdict, Axis 1/2/3, Issues) → ÉTAPE 4 confirmer le verdict + le chemin.
 - **Relecture du config via MCP (pas depuis le state)** : le Reviewer lit le fichier réellement
   écrit sur disque → cohérence avec ce que le jeu chargera + `tool_use read_text_file` visible
   au jury. `{csr_summary}` sert de source de vérité thématique pour l'Axe 2.
-- **Fact-check Tavily conditionnel** : n'appelle le web QUE sur une espèce douteuse → MCP call
-  supplémentaire pertinent (bonus jury) sans bruit sur les runs propres.
+- **Dataset Clérac local via Filesystem MCP** (mis à jour 6 juil., remplace le fact-check
+  Tavily initial) : le Reviewer lit `docs/clerac_species_reference.json` pour l'Axe 2 au
+  lieu d'interroger Tavily. Motifs : (a) blocage TLS du VPN Imerys sur `tavily-mcp` en
+  test (cf. `TAVILY_VPN_INCIDENT.md`) ; (b) précision scientifique renforcée — le dataset
+  est constitué à partir des inventaires officiels du site (CNPN Perrin 2022, MRAe
+  Nouvelle-Aquitaine, DREAL FR5400437, INPN), avec 51 espèces validées, 12 habitats
+  documentés, 3 espèces incorrectes listées explicitement (rollier, guêpier, lézard
+  ocellé) ; (c) angle writeup jury plus solide qu'un appel Tavily on-the-fly. La lecture
+  du dataset compte comme MCP call visible dans la debug view (`read_text_file`). Voir
+  `DECISIONS.md` § 2026-07-06 et `CLERAC_RESEARCH_REPORT.md` pour la méthodologie.
 - **Nom `review_<site>.md` (pas `review_<timestamp>.md`)** : un LLM ne peut pas générer de
   timestamp fiable → nom déterministe et lisible dérivé de `site_name`. Déviation assumée du
   spec Sprint 4 (voir `DECISIONS.md`).
@@ -468,3 +492,4 @@ Verdict, Axis 1/2/3, Issues) → ÉTAPE 4 confirmer le verdict + le chemin.
 | 5 juil. 2026 | coder | Sprint 2 : champs narratifs `intro_story` / `eco_facts` / `end_recap` + passthrough espèces |
 | 5 juil. 2026 | coder | Sprint 3 : sections gameplay `obstacles`/`zones`/`entities`/`difficulty`/`thresholds` + plages + garde-fou anti-zéro |
 | 5 juil. 2026 | reviewer | Sprint 4 : création du 3ᵉ agent (mode rapport), validation 3 axes, écrit `docs/reviews/review_<site>.md`, fact-check Tavily conditionnel |
+| 6 juil. 2026 | reviewer | Sprint 4 pivot : Tavily retiré (blocage VPN Imerys), Axe 2 consomme `docs/clerac_species_reference.json` via Filesystem MCP. Tools = `[fs_read, fs_write]`. À synchroniser dans `app/agent.py` |

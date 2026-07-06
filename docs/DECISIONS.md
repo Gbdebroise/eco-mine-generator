@@ -293,3 +293,88 @@ visible dans la debug view.
   `speed_max < speed_start`, seuils badge triviaux/hors-plage, et `missing_assets`.
 - `session.state` propage bien Researcher → Coder → Reviewer (`{csr_summary}` consommé par
   le Reviewer) — vérifie que le bug de propagation du Sprint 1 ne réapparaît pas.
+
+
+---
+
+## 2026-07-06 — Sprint 4 : pivot Tavily → dataset Clérac local (Filesystem MCP)
+
+**Contexte** : la décision Sprint 4 du 5 juil. prévoyait un fact-check Tavily conditionnel
+dans le Reviewer pour vérifier une espèce douteuse (« MCP call visible en plus »). En
+tentant de brancher `tavily-mcp` côté WSL (VPN Imerys actif en permanence, non
+désactivable), le serveur MCP crashe systématiquement au démarrage : les logs ADK
+montrent `Failed to create MCP session` en boucle et `ValueError: Tool 'tavily_search'
+not found. Available tools: read_file, read_text_file, list_directory` — seul le
+Filesystem MCP expose des outils, Tavily n'en fournit aucun. Hypothèse dominante :
+inspection TLS d'entreprise du VPN Imerys (self-signed cert observé en curl direct)
+qui casse la chaîne de certificats vue par Node. Diagnostic complet dans
+`docs/TAVILY_VPN_INCIDENT.md`.
+
+Compte Tavily payant validé (clé OK hors VPN via curl direct), donc l'API elle-même
+n'est pas en cause — c'est l'infrastructure réseau côté machine de test qui bloque.
+
+Deuxième constat, indépendant du VPN : les espèces mentionnées jusqu'ici comme
+« liste Clérac » (rollier d'Europe, guêpier d'Europe, lézard ocellé) sont en réalité
+**méditerranéennes** et n'apparaissent dans aucun document officiel du site Clérac
+(avis CNPN Perrin 2022, MRAe Nouvelle-Aquitaine 2022, fiche N2000 FR5400437 Landes
+de Montendre). La vraie espèce emblématique de Clérac est la **Fauvette pitchou**
+dans les landes à ajoncs. Voir `docs/CLERAC_RESEARCH_REPORT.md`.
+
+**Décision** : le Reviewer n'utilise plus Tavily. Il consomme à la place un dataset
+scientifique local `docs/clerac_species_reference.json` (51 espèces validées sur
+7 taxons, 12 habitats, 3 espèces incorrectes explicitement signalées avec substitution
+recommandée, 3 axes de validation formalisés) lu via **Filesystem MCP** (`fs_read`,
+déjà fonctionnel et robuste au VPN). Le dataset est constitué à partir de sources
+officielles françaises (CNPN, MRAe, DREAL Nouvelle-Aquitaine, INPN, Imerys corporate,
+LPO, Poitou-Charentes Nature) — voir `docs/CLERAC_RESEARCH_REPORT.md` pour la
+méthodologie complète.
+
+Le Reviewer garde ses 3 axes et son verdict `PASS` / `PASS WITH WARNINGS` / `FAIL`.
+Seul l'Axe 2 (cohérence thématique Clérac) change de source : il lit le JSON au lieu
+d'appeler le web. Les tools déclarés dans `app/agent.py` passent de
+`[fs_read, web_search, fs_write]` à `[fs_read, fs_write]`. `tavily-mcp` n'est plus
+branché au Reviewer (mais reste branché au Researcher pour l'enrichissement biodiversité,
+inchangé — le Researcher n'a pas d'impératif de robustesse en démo puisqu'il tourne
+avant, et un fallback CSR est déjà en place).
+
+**Alternative rejetée — fix TLS Node (`NODE_EXTRA_CA_CERTS` avec CA Imerys)** :
+techniquement propre mais demande d'extraire le CA racine d'entreprise depuis le
+Windows certificate store, à refaire sur toute machine de démo. **Rejeté** :
+dépendance sur un artefact machine-specific, fragile pour la démo vidéo, et ne
+résout pas le problème #2 (espèces incorrectes).
+
+**Alternative rejetée — Brave Search MCP** : drop-in replacement de Tavily, même
+domaine externe. **Rejeté** : même risque de blocage VPN Imerys, même fragilité en
+démo, et ne résout pas le problème #2.
+
+**Alternative rejetée — Fetch MCP officiel + INPN** : plus pertinent
+scientifiquement (source française officielle) mais dépend de la disponibilité
+`inpn.mnhn.fr` via VPN et ajoute une couche d'incertitude en démo. **Rejeté** pour
+Sprint 4, envisageable comme évolution future post-jury.
+
+**Alternative rejetée — MCP custom autour d'INPN ou GBIF** : discutée mais jugée
+disproportionnée pour la deadline (3h de dev estimées) alors que le dataset local
+couvre le besoin fonctionnel.
+
+**Alternative rejetée — `NODE_TLS_REJECT_UNAUTHORIZED=0`** : contournement quick &
+dirty. **Rejeté** : signal d'alerte sécurité inacceptable dans un writeup ou une
+démo jury, et masquerait le problème #2 (espèces incorrectes).
+
+**Impact attendu** :
+- Reviewer robuste au VPN Imerys (aucun appel externe, uniquement Filesystem MCP)
+- Précision scientifique renforcée : les 3 espèces incorrectes détectées à coup sûr
+  (elles sont dans `especes_incorrectes` du JSON avec sévérité `error`), les 51
+  espèces validées reconnues par leurs noms français et scientifiques
+- Preuve MCP conservée : le Reviewer produit `read_text_file` sur le config,
+  le schéma, le manifeste ET le dataset de référence — 4 `tool_use` visibles dans
+  la debug view au lieu de 3 précédemment
+- Angle writeup renforcé : « nous avons constitué un dataset de référence à partir
+  de sources officielles françaises » est plus solide qu'un fact-check Tavily
+  ponctuel, et cohérent avec l'exigence de rigueur scientifique sur un sujet
+  biodiversité
+- HANDOFF § Biodiversité Clérac à mettre à jour (liste actuelle contient les 3
+  espèces incorrectes)
+- Prompt Reviewer à mettre à jour dans `app/agent.py` et `docs/AGENT_PROMPTS.md`
+  (contrat Axe 2 change : lecture du JSON au lieu d'appel web)
+- `tavily-mcp` reste branché au **Researcher** (fallback CSR déjà en place si
+  le blocage réseau se reproduit là aussi — à valider en playground)
