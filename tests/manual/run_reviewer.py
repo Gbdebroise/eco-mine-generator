@@ -39,8 +39,8 @@ CLERAC_CSR_SUMMARY = (
     '"eco_target": "Migratory Birds (MNHN)", "protected_area": "Chestnut Groves (bats)", '
     '"danger_obstacle": "Blasting Zone", '
     '"headline_fact": "Like Imerys at Clerac, you supported bird monitoring with the MNHN through the ACRO-bag program.", '
-    '"biodiversity_species": ["Migratory Birds", "Cave Bats", "European Roller", '
-    '"Bee-eater", "Natterjack Toad", "Ocellated Lizard"]}'
+    '"biodiversity_species": ["European Otter", "European Mink", "European Kingfisher", '
+    '"European Nightjar", "Natterjack Toad", "Dartford Warbler", "Noctule Bat"]}'
 )
 
 

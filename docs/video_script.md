@@ -27,8 +27,8 @@ playable awareness game about it. You give it one thing: a site name."
 ## 0:30 – 1:30 — Architecture (three agents, MCP)
 
 **On screen:** the pipeline diagram — CLI → ADK `SequentialAgent` → Researcher [MCP: read +
-Tavily + Fetch] → Coder [MCP: write] → **Reviewer** [MCP: read + Tavily + write] → fixed
-Phaser engine. Briefly show `app/agent.py` with the three `LlmAgent`s and `McpToolset`.
+Tavily + Fetch] → Coder [MCP: write] → **Reviewer** [MCP: read config + read Clérac dataset +
+write] → fixed Phaser engine. Briefly show `app/agent.py` with the three `LlmAgent`s and `McpToolset`.
 
 **Say:**
 "It's a three-agent pipeline on Google's ADK. A **Researcher** reads the site's data and
@@ -50,17 +50,20 @@ in frame**. Type slowly:
 **Say (while it runs):**
 "Watch the debug view. The **Researcher** calls the filesystem MCP to read the real CSR —
 chamotte clay, bird-banding with the MNHN, chestnut groves left unmined for bats — then calls
-**Tavily** and **Fetch** to widen the biodiversity: European roller, bee-eater, natterjack toad.
+**Tavily** and **Fetch** to widen the biodiversity: European otter, kingfisher, natterjack toad.
 It hands that to the **Coder**, which reads the asset manifest and writes `level_config.json` —
 again, through MCP. Count the tool calls climbing."
 
 **On screen:** the Reviewer step in the debug view.
 
 **Say:**
-"Now the **Reviewer** kicks in. It reads the config back off disk, checks it on three axes —
-valid schema and in-range values, only real Clérac species, and a reachable-but-not-trivial
-Green badge — and writes a verdict to `docs/reviews/review_clerac.md`. If a species looked
-off, it would fact-check it with Tavily — another live MCP call. Here's the report: **PASS**."
+"Now the **Reviewer** kicks in. It reads the config back off disk, then reads a curated Clérac
+species dataset — built from official French environmental sources — and checks the config on
+three axes: valid schema and in-range values, only real Clérac species, and a
+reachable-but-not-trivial Green badge. That dataset is what lets it reject plausible-sounding
+but wrong species — a European roller, say, which is actually Mediterranean and never recorded
+here. On this config: everything checks out. It writes the verdict to
+`docs/reviews/review_clerac.md`. **PASS**."
 
 **On screen:** open `docs/reviews/review_clerac.md`, scroll the three axes and the verdict.
 
@@ -97,8 +100,15 @@ into a game you can actually play. Code and writeup are linked below."
 
 - Keep the **MCP-call counter in frame** for the entire 1:30–3:00 segment — it's the single
   strongest proof for the jury.
-- If a species fact-check (Tavily) fires during the Reviewer step, let it show — that's a bonus
-  agentic moment; call it out.
+- When the Reviewer reads `docs/clerac_species_reference.json`, make sure that `read_text_file`
+  is visible in the debug view — it's the call that grounds the species validation.
+- **VPN / Tavily contingency:** the corporate VPN blocks Tavily's TLS on the test machine
+  (`docs/TAVILY_VPN_INCIDENT.md`). If the Researcher's Tavily/Fetch calls fail on camera, either
+  record off-VPN, or trim the "widen the biodiversity" line and lean on the CSR read — the
+  Reviewer's dataset read (the stronger MCP beat) is unaffected.
+- To show the Reviewer *catching* a bad species on camera, run `tests/manual/run_reviewer.py`
+  on the broken fixture as an optional B-roll (verdict FAIL, roller flagged) — but keep the main
+  take on the clean Clérac config (PASS).
 - If time runs long, trim the game-play segment (3:00–3:45), never the pipeline segment.
 - Subtitles: script is EN. If a FR audience is ever targeted, add FR subtitles — but the spoken
   track and captions stay EN for the international jury.

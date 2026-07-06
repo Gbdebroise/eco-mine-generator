@@ -1,5 +1,5 @@
 {
-  "_comment": "DELIBERATELY BROKEN fixture for Sprint 4 Reviewer testing. The Reviewer must FAIL this: off-site species (Polar Bear, Bengal Tiger), out-of-range values, a spawn_weight of 0, speed_max < speed_start, trivial badge thresholds, and a missing_assets entry. Do NOT ship this as a real level.",
+  "_comment": "DELIBERATELY BROKEN fixture for Sprint 4 Reviewer testing. The Reviewer must FAIL this: European Roller = a species listed in especes_incorrectes of clerac_species_reference.json (must be flagged with its recommended substitution, Dartford Warbler); Polar Bear + Bengal Tiger = unknown/off-site (must be flagged 'verify'); plus out-of-range values, a spawn_weight of 0, speed_max < speed_start, trivial badge thresholds, and a missing_assets entry. Do NOT ship this as a real level.",
   "site_name": "Clerac",
   "mineral_name": "Chamotte Clay",
   "eco_target": "Migratory Birds (MNHN)",

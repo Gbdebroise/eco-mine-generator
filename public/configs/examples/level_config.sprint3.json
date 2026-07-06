@@ -7,12 +7,13 @@
   "scrolling_speed": 300,
   "spawn_rates": { "mineral": 0.6, "eco_bonus": 0.4, "obstacle": 0.5 },
   "biodiversity_species": [
-    "Migratory Birds",
-    "Cave Bats",
-    "European Roller",
-    "Bee-eater",
+    "European Otter",
+    "European Mink",
+    "European Kingfisher",
+    "European Nightjar",
     "Natterjack Toad",
-    "Ocellated Lizard"
+    "Dartford Warbler",
+    "Noctule Bat"
   ],
   "obstacles": {
     "dynamite": {
@@ -58,11 +59,11 @@
     "intro_story": "Imerys needs you at the Clerac clay quarry in Charente-Maritime. Haul Chamotte to keep the refractory plant running — but the open pit is alive with migratory birds tracked by the MNHN. Collect the ore, shield the wildlife, dodge the dynamite and rival trucks, and slow down through the protected wetlands.",
     "eco_facts": [
       "Migratory birds here are ringed with the MNHN every year.",
-      "Chestnut groves are left unmined to shelter bats.",
-      "European rollers nest in the quarry's sandy banks.",
-      "Bee-eaters hunt insects above the restored ponds.",
-      "Natterjack toads breed in the quarry's shallow water.",
-      "The ACRO-bag program compares quarries with restored sites."
+      "Chestnut groves are left unmined to shelter roosting bats.",
+      "Dartford warblers nest in the dense gorse of the heathland.",
+      "Kingfishers hunt along the old flooded quarry pools.",
+      "Natterjack toads breed in the quarry's shallow pools.",
+      "The critically endangered European mink survives in these wetlands."
     ],
     "end_recap": "Like Imerys at Clerac, you supported bird monitoring with the MNHN through the ACRO-bag program."
   }

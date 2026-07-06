@@ -43,8 +43,8 @@ Why multi-agent is the right shape here, not decoration: the failure modes are *
         │  MCP: filesystem(write)  → public/level_config.json
             │
    3. reviewer_agent     gemini-2.5-pro          ◄── NEW (Sprint 4)
-        │  MCP: filesystem(read)   → public/level_config.json + schema + manifest
-        │  MCP: tavily(search)     → verify a doubtful species
+        │  MCP: filesystem(read)   → level_config.json + schema + manifest
+        │  MCP: filesystem(read)   → docs/clerac_species_reference.json  (curated CNPN/MRAe/DREAL dataset)
         │  MCP: filesystem(write)  → docs/reviews/review_<site>.md   (human-readable verdict)
             │
             ▼
@@ -55,25 +55,27 @@ Why multi-agent is the right shape here, not decoration: the failure modes are *
 
 | MCP server | Used by | What it proves in the playground debug view |
 |---|---|---|
-| `@modelcontextprotocol/server-filesystem` (read view) | Researcher, Coder, Reviewer | `read_text_file` on the CSR, the asset manifest, the generated config, the schema |
-| `tavily-mcp` | Researcher, Reviewer | web-search `tool_use` — the Researcher enriches biodiversity; the Reviewer *fact-checks* a doubtful species |
+| `@modelcontextprotocol/server-filesystem` (read view) | Researcher, Coder, Reviewer | `read_text_file` on the CSR, the asset manifest, the generated config, the schema, and the **curated Clérac species dataset** (Reviewer) |
+| `tavily-mcp` | Researcher | web-search `tool_use` — the Researcher enriches biodiversity beyond the local file |
 | `@modelcontextprotocol/server-fetch` | Researcher | reads the content of a discovered URL |
 | `@modelcontextprotocol/server-filesystem` (write view) | Coder, Reviewer | `write_file` on `level_config.json` (Coder) and the review report (Reviewer) |
+
+> **Reviewer validation is dataset-driven, not web-driven.** On the test machine Tavily is blocked by the corporate VPN's TLS inspection (see `docs/TAVILY_VPN_INCIDENT.md`), and — more importantly — species validation should rest on an authoritative, auditable source, not a live web guess. So the Reviewer checks `biodiversity_species` against `docs/clerac_species_reference.json`, a curated dataset built from official sources (CNPN, MRAe Nouvelle-Aquitaine, DREAL Natura 2000, INPN): 51 validated species plus an explicit `especes_incorrectes` list. That read is itself a visible MCP call.
 
 **Key design decision (carried from Sprints 1–3):** the agents never emit game code. They produce a ~50-line constrained `level_config.json`; the Phaser engine is fixed and hand-tested. This collapses the LLM error surface from hundreds of lines of fragile JavaScript to structured data with documented ranges (`docs/level_config_schema.md`). The Reviewer is the third leg of that same reliability strategy: *validate the data, since the data is all the agent controls.*
 
 ## 4. The pipeline in action (what the video shows)
 
 1. **Ask for a site** — `Generate a game for Clerac` in the playground.
-2. **Researcher** reads `imerys_csr_data.txt` (visible `read_text_file`), then calls **Tavily** and **Fetch** to widen biodiversity beyond the file (European roller, bee-eater, natterjack toad…). Output: a clean JSON `csr_summary` in session state.
+2. **Researcher** reads `imerys_csr_data.txt` (visible `read_text_file`), then calls **Tavily** and **Fetch** to widen biodiversity beyond the file (otter, kingfisher, natterjack toad…). Output: a clean JSON `csr_summary` in session state.
 3. **Coder** reads the asset manifest (visible `read_text_file`), writes `public/level_config.json` (visible `write_file`) — labels, biome, five gameplay sections, and the narrative strings.
-4. **Reviewer** reads that config back off disk (visible `read_text_file`), checks it on three axes, optionally fact-checks one species via **Tavily**, and writes `docs/reviews/review_clerac.md` (visible `write_file`) with a global verdict.
+4. **Reviewer** reads that config back off disk (visible `read_text_file`), reads the curated Clérac dataset (`read_text_file` on `docs/clerac_species_reference.json`), checks the config on three axes, and writes `docs/reviews/review_clerac.md` (visible `write_file`) with a global verdict.
 5. **Play it** — the fixed engine renders the top-down runner: collect Chamotte, band migratory birds, dodge dynamite and rival trucks, slow through the protected wetlands, chase the Imerys Green badge.
 6. **The generalization beat** — change nothing in the code, ask for **Beauvoir**: same engine, a lithium underground-mining level that protects the Sioule river.
 
 ## 5. The Reviewer in detail (validation contract)
 
-The Reviewer runs **as a report**, not a correction loop (decision locked Sprint 4: simpler, safer to demo, no orchestration change — it is appended as the third `sub_agent` of the existing `SequentialAgent`). It reads the freshly-written `public/level_config.json` and the researcher's `csr_summary`, evaluates **three axes**, and writes a human-readable verdict to `docs/reviews/review_<site>.md`. Every read/write and every fact-check is an MCP call visible in the playground.
+The Reviewer runs **as a report**, not a correction loop (decision locked Sprint 4: simpler, safer to demo, no orchestration change — it is appended as the third `sub_agent` of the existing `SequentialAgent`). It reads the freshly-written `public/level_config.json`, the researcher's `csr_summary`, and the curated Clérac reference dataset, evaluates **three axes**, and writes a human-readable verdict to `docs/reviews/review_<site>.md`. Every read and write is an MCP call visible in the playground.
 
 ### Axis 1 — Config validity
 - The JSON parses and matches the Sprint 3 schema (`docs/level_config_schema.md`): all required keys present, correct types.
@@ -82,10 +84,11 @@ The Reviewer runs **as a report**, not a correction loop (decision locked Sprint
 - Any asset path referenced actually exists on disk — checked by reading it via the filesystem MCP (**one more visible MCP call**). A `missing_assets` array, if present, is surfaced, not hidden.
 
 ### Axis 2 — Clérac thematic coherence
-- Every species in `biodiversity_species` belongs to the site's real list: **European roller, bee-eater, nightjar, natterjack toad, ocellated lizard, orchids, local insects, migratory birds, cave bats** (Clérac); the allowlist is site-specific and grounded in `imerys_csr_data.txt`.
-- **No off-site species** — no tiger, no polar bear, no irrelevant Mediterranean flora.
-- The mineral is **kaolin / chamotte clay** — not coal, not gold.
-- If a species is *not* on the known list, the Reviewer does not guess: it calls **Tavily** to check whether that species is credibly present at Clérac / its region, and records the finding. **This is an extra visible MCP call — and a genuine agentic fact-check, not a hard-coded string match.**
+Validated **mechanically against `docs/clerac_species_reference.json`** — a curated dataset (CNPN, MRAe Nouvelle-Aquitaine, DREAL Natura 2000, INPN) of 51 species really recorded at Clérac, an explicit `especes_incorrectes` list, valid habitats, and site context. The Reviewer does not reason from its own memory; it compares each config entry to this authoritative source.
+- Each species in `biodiversity_species` is matched to the dataset: **validated** (e.g. European otter, European mink, kingfisher, nightjar, natterjack toad, Dartford warbler, noctule bat) → OK; **in `especes_incorrectes`** → flagged with the recommended substitution; **unknown** → flagged as "verify — outside reference".
+- This axis has real teeth: the dataset records that **European roller, bee-eater and ocellated lizard are Mediterranean species absent from the official Clérac inventories** — a plausible-sounding hallucination a naive researcher (or LLM) will happily emit. The Reviewer catches each and proposes the correct local substitute (roller → Dartford warbler, ocellated lizard → western green lizard).
+- The mineral is checked against `site_context.minerai_principal` — **kaolin / chamotte**, not coal, not gold (`error` if wrong). Habitats and commune are checked against the dataset too.
+- The read of the dataset is the visible MCP call that grounds this validation — an **auditable** check, not a live web guess.
 
 ### Axis 3 — Gameplay balance
 Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1` green, grove `−20`/`−3` green, dynamite `−200`/`−10` green, distance `+1` per 10 px; badge = `score ≥ min_score` **AND** `green_points ≥ min_green_points`):
@@ -95,7 +98,7 @@ Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1`
 
 ### Output contract
 - **Human-readable file** `docs/reviews/review_<site>.md`: a global verdict (`PASS` / `PASS WITH WARNINGS` / `FAIL`) followed by a per-axis breakdown with the specific values checked.
-- **Visible in the playground**: the read of the config, the read of the manifest, the optional Tavily fact-check, and the write of the report all appear as MCP `tool_use` events.
+- **Visible in the playground**: the read of the config, the read of the schema/manifest, the read of the Clérac reference dataset, and the write of the report all appear as MCP `tool_use` events.
 - The report does **not** loop back to the Coder (locked decision); a human reads the verdict and decides whether to re-run.
 
 > **Explicit criteria contract** (the list the build in Étape 2 must satisfy) is reproduced verbatim for the reviewer prompt in `docs/AGENT_PROMPTS.md` § Reviewer.
@@ -103,7 +106,7 @@ Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1`
 ## 6. Results
 
 > *[To be filled after the WSL test pass — see `docs/HANDOFF.md` § Validation.]*
-> - Number of MCP `tool_use` events observed in one full run (target: filesystem read ×N, Tavily ×≥1, fetch ×≥1, write ×2).
+> - Number of MCP `tool_use` events observed in one full run (target: filesystem read ×N incl. the Clérac dataset, Researcher Tavily/fetch where the network allows — blocked by the corporate VPN on the test machine, see `docs/TAVILY_VPN_INCIDENT.md` — and write ×2).
 > - Example generated `level_config.json` (Clérac) — link/inline.
 > - Example generated `docs/reviews/review_clerac.md` — link/inline.
 > - Reviewer catching an intentionally broken config (off-site species + out-of-range values) — before/after.
@@ -112,7 +115,7 @@ Grounded in the real scoring in `public/game.js` (ore `+10`, bird `+15` and `+1`
 ## 7. Limits & learnings
 
 - **Reviewer is report-only, not a correction loop.** A feedback loop back to the Coder would be more impressive but riskier to demo and harder to bound (infinite-iteration risk). We chose robustness for the capstone deadline; the loop is documented as future work.
-- **Species fact-checking depends on web search quality.** Tavily can miss or over-return; the Reviewer flags doubt rather than asserting, which is the honest behavior but not a hard guarantee.
+- **Species validation rests on a curated static dataset, not live web search.** We originally planned a Tavily fact-check, but the corporate VPN's TLS inspection blocks it on the test machine (`docs/TAVILY_VPN_INCIDENT.md`) — and an authoritative, auditable reference is honestly the better choice for a validator. The trade-off: `docs/clerac_species_reference.json` must be maintained by hand, and today only Clérac is covered in that depth (the other three sites fall back to looser CSR-based checks).
 - **No reliable clock inside the agent**, so reviews are named `review_<site>.md` (deterministic, meaningful) rather than by timestamp — a small, deliberate deviation from the original spec.
 - **The data is real but not exhaustively re-verified against the latest CSR** — the source file says so explicitly. This is an educational tool *inspired by* real initiatives, not an official Imerys communication.
 - **What worked:** the "fixed engine + constrained config + independent validator" pattern. Almost every failure we hit across four sprints was an *agent producing bad data*, and moving validation into its own agent with its own tools (rather than more prompt rules) is what made the output trustworthy.
