@@ -187,6 +187,9 @@ testem.log
 Thumbs.db
 *.vscode*
 
+# Video captures (demo recordings — trop lourds pour git, sync via USB si besoin)
+docs/videos/
+
 # ADK
 .adk/
 
